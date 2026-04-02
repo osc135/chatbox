@@ -188,3 +188,7 @@ storybook-static
 .gstack/
 .worktrees/
 .claude/worktrees/
+
+# Project docs (local only)
+prd.md
+assignment.md
