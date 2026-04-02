@@ -2,7 +2,7 @@ import NiceModal from '@ebay/nice-modal-react'
 import { ActionIcon, type ActionIconProps, Flex, Image as Img, Loader, Text, Tooltip as Tooltip1 } from '@mantine/core'
 import { Grid, useTheme } from '@mui/material'
 import Box from '@mui/material/Box'
-import type { Message, MessagePicture, MessageToolCallPart, SessionType } from '@shared/types'
+import type { Message, MessageAppPart, MessagePicture, MessageToolCallPart, SessionType } from '@shared/types'
 import { getMessageText } from '@shared/utils/message'
 import {
   IconArrowDown,
@@ -50,6 +50,7 @@ import { AssistantAvatar, SystemAvatar, UserAvatar } from '../common/Avatar'
 import { ScalableIcon } from '../common/ScalableIcon'
 import Loading from '../icons/Loading'
 import { ReasoningContentUI, ToolCallPartUI, WebSearchGroupUI } from '../message-parts/ToolCallPartUI'
+import AppEmbed from './AppEmbed'
 import { MessageAttachmentGrid } from './MessageAttachmentGrid'
 import MessageErrTips from './MessageErrTips'
 import MessageStatuses from './MessageLoading'
@@ -504,6 +505,8 @@ const _Message: FC<Props> = (props) => {
                   )
                 ) : item.type === 'tool-call' ? (
                   <ToolCallPartUI key={item.toolCallId} part={item as MessageToolCallPart} />
+                ) : item.type === 'app' ? (
+                  <AppEmbed key={`app-${(item as MessageAppPart).appId}`} part={item as MessageAppPart} />
                 ) : null
               )}
             </div>

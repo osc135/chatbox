@@ -33,6 +33,7 @@ import {
   knowledgeBaseSearchByPromptEngineering,
   searchByPromptEngineering,
 } from './tools'
+import { chessTools } from './toolsets/chess'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -295,6 +296,7 @@ export async function streamText(
     // 4. construct tool set
     let tools: ToolSet = {
       ...mcpController.getAvailableTools(),
+      ...chessTools,
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool

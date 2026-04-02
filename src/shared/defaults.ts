@@ -3,6 +3,12 @@ import { type Config, ModelProviderEnum, type SessionSettings, type Settings, Th
 
 export function settings(): Settings {
   return {
+    providers: {
+      [ModelProviderEnum.OpenAI]: {
+        apiKey: process.env.GPT_API_KEY || '',
+        activeAuthMode: 'apikey' as const,
+      },
+    },
     // aiProvider: ModelProviderEnum.OpenAI,
     // openaiKey: '',
     // apiHost: 'https://api.openai.com',
@@ -161,8 +167,8 @@ export function getDefaultPrompt() {
 
 export function chatSessionSettings(): SessionSettings {
   return {
-    provider: ModelProviderEnum.ChatboxAI,
-    modelId: 'chatboxai-4',
+    provider: ModelProviderEnum.OpenAI,
+    modelId: 'gpt-4o',
     maxContextMessageCount: Number.MAX_SAFE_INTEGER,
   }
 }

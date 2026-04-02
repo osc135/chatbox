@@ -5,6 +5,5 @@ export function getHomeWelcomeCardMode(_params: {
   isLoggedIn: boolean
   hasLicense: boolean
 }): WelcomeCardMode {
-  if (_params.providerCount === 0) return 'guide'
   return null
 }

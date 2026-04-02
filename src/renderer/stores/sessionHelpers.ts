@@ -580,7 +580,6 @@ export function mergeSettings(
 
 export function initEmptyChatSession(): Omit<Session, 'id'> {
   const settings = settingsStore.getState().getSettings()
-  const { chat: lastUsedChatModel } = lastUsedModelStore.getState()
   const newSession: Omit<Session, 'id'> = {
     name: 'Untitled',
     type: 'chat',
@@ -589,12 +588,8 @@ export function initEmptyChatSession(): Omit<Session, 'id'> {
       maxContextMessageCount: settings.maxContextMessageCount ?? Number.MAX_SAFE_INTEGER,
       temperature: settings.temperature || undefined,
       topP: settings.topP || undefined,
-      ...(settings.defaultChatModel
-        ? {
-            provider: settings.defaultChatModel.provider,
-            modelId: settings.defaultChatModel.model,
-          }
-        : lastUsedChatModel),
+      provider: 'openai',
+      modelId: 'gpt-4o',
     },
   }
   if (settings.defaultPrompt) {

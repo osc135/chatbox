@@ -1250,38 +1250,16 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
                     opened={showSelectModelErrorTip}
                     withArrow
                   >
-                    <ModelSelector
-                      onSelect={onSelectModel}
-                      selectedProviderId={model?.provider}
-                      selectedModelId={model?.modelId}
-                      position="top-end"
-                      transitionProps={{
-                        transition: 'fade-up',
-                        duration: 200,
-                      }}
+                    <Box
+                      className="flex min-w-0 max-w-full items-center gap-1 px-2 py-1 rounded-lg"
                     >
-                      <UnstyledButton
-                        className={cn(
-                          'flex min-w-0 max-w-full items-center gap-1 px-2 py-1 rounded-lg hover:bg-[var(--chatbox-background-tertiary)] transition-colors',
-                          !model && 'animate-pulse bg-blue-500/20'
-                        )}
+                      <Text
+                        size="sm"
+                        className="min-w-0 flex-1 truncate text-[var(--chatbox-tint-secondary)]"
                       >
-                        {!!model && <ProviderImageIcon size={18} provider={model.provider} />}
-                        <Text
-                          size="sm"
-                          className={cn(
-                            'min-w-0 flex-1 truncate text-[var(--chatbox-tint-secondary)]',
-                            isSmallScreen ? 'max-w-[100px]' : 'max-w-[160px]'
-                          )}
-                        >
-                          {modelSelectorDisplayText}
-                        </Text>
-                        <IconChevronRight
-                          size={14}
-                          className="text-[var(--chatbox-tint-tertiary)] rotate-90 flex-shrink-0"
-                        />
-                      </UnstyledButton>
-                    </ModelSelector>
+                        GPT-4o
+                      </Text>
+                    </Box>
                   </Tooltip>
                 </Box>
               </Flex>

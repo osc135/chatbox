@@ -117,12 +117,20 @@ export const MessageToolCallPartSchema = z.object({
   result: z.unknown().optional(),
 })
 
+export const MessageAppPartSchema = z.object({
+  type: z.literal('app'),
+  appId: z.string(),
+  appUrl: z.string(),
+  state: z.record(z.string(), z.unknown()).optional(),
+})
+
 export const MessageContentPartSchema = z.discriminatedUnion('type', [
   MessageTextPartSchema,
   MessageImagePartSchema,
   MessageInfoPartSchema,
   MessageReasoningPartSchema,
   MessageToolCallPartSchema,
+  MessageAppPartSchema,
 ])
 
 export const MessageContentPartsSchema = z.array(MessageContentPartSchema)
@@ -304,6 +312,7 @@ export type MessageToolCallPart<Args = unknown, Result = unknown> = z.infer<type
   args: Args
   result?: Result
 }
+export type MessageAppPart = z.infer<typeof MessageAppPartSchema>
 export type MessageContentParts = z.infer<typeof MessageContentPartsSchema>
 export type StreamTextResult = z.infer<typeof StreamTextResultSchema>
 export type ToolUseScope = z.infer<typeof ToolUseScopeSchema>

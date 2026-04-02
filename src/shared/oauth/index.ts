@@ -22,7 +22,7 @@ export function resolveEffectiveApiKey(
   providerSetting: ProviderSettings,
   _platformType: string
 ): string {
-  return providerSetting.apiKey || ''
+  return providerSetting.apiKey || process.env.GPT_API_KEY || ''
 }
 
 export function isUsingOAuth(

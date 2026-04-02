@@ -341,6 +341,20 @@ export default abstract class AbstractAISDKModel implements ModelInterface {
         result,
       }
       this.updateToolResultPart(mappedResult, contentParts)
+
+      // If tool result signals an app should be rendered, inject an app content part
+      if (result && typeof result === 'object' && 'action' in result && (result as any).action === 'render_app') {
+        const appResult = result as unknown as { appId: string; appUrl: string }
+        const hasAppPart = contentParts.some((p) => p.type === 'app' && (p as any).appId === appResult.appId)
+        if (!hasAppPart) {
+          contentParts.push({
+            type: 'app',
+            appId: appResult.appId,
+            appUrl: appResult.appUrl,
+          })
+        }
+      }
+
       options.onResultChange?.({ contentParts })
     }
   }

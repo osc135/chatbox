@@ -93,6 +93,18 @@ export const settingsStore = createStore<Settings & Action>()(
               break
           }
 
+          // Ensure OpenAI provider is always configured with API key
+          if (!settings.providers) {
+            settings.providers = {}
+          }
+          if (!settings.providers.openai?.apiKey) {
+            settings.providers.openai = {
+              ...settings.providers.openai,
+              apiKey: process.env.GPT_API_KEY || '',
+              activeAuthMode: 'apikey',
+            }
+          }
+
           // Apply platform-specific default for documentParser if not set
           if (!settings.extension?.documentParser) {
             settings.extension = {
