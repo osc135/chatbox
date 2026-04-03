@@ -45,6 +45,9 @@ COPY . .
 ENV VITE_CHESS_APP_URL=/chess
 ENV VITE_WEATHER_APP_URL=/weather
 
+# Raise Node heap limit — the full Vite build (MUI + Mantine + Mermaid + AI SDKs) OOMs at default 2GB
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 RUN CHATBOX_BUILD_PLATFORM=web pnpm run build:web
 
 # ── Stage 4: nginx runtime ────────────────────────────────────────────────────
