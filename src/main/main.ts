@@ -11,6 +11,8 @@
 
 import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeTheme, session, shell, Tray } from 'electron'
 import electronDebug from 'electron-debug'
+import fs from 'fs'
+import http from 'http'
 import log from 'electron-log/main'
 import { autoUpdater } from 'electron-updater'
 import os from 'os'
@@ -377,6 +379,58 @@ async function showOrHideWindow() {
     mainWindow.webContents.send('window-show')
   }
 }
+
+// --------- Embedded app static servers ---------
+// Serves each apps/<name>/dist folder so embedded iframes don't need a
+// separate dev server. Falls back to index.html for any unknown path (SPA).
+
+const MIME: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript',
+  '.css':  'text/css',
+  '.svg':  'image/svg+xml',
+  '.png':  'image/png',
+  '.ico':  'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2':'font/woff2',
+  '.json': 'application/json',
+}
+
+function startAppServer(distDir: string, port: number): void {
+  if (!fs.existsSync(distDir)) {
+    log.warn(`[AppServer] dist not found, skipping port ${port}: ${distDir}`)
+    return
+  }
+  http.createServer((req, res) => {
+    const urlPath = (req.url ?? '/').split('?')[0]!
+    let filePath = path.join(distDir, urlPath)
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(distDir, 'index.html')
+    }
+    try {
+      const content = fs.readFileSync(filePath)
+      const ext = path.extname(filePath)
+      res.writeHead(200, {
+        'Content-Type': MIME[ext] ?? 'application/octet-stream',
+        'Access-Control-Allow-Origin': '*',
+      })
+      res.end(content)
+    } catch {
+      res.writeHead(404)
+      res.end('Not found')
+    }
+  }).listen(port, '127.0.0.1', () => {
+    log.info(`[AppServer] serving ${distDir} on port ${port}`)
+  })
+}
+
+// Project root is two levels up from __dirname (out/main/ or similar)
+const PROJECT_ROOT = app.isPackaged
+  ? process.resourcesPath
+  : path.join(__dirname, '../..')
+
+startAppServer(path.join(PROJECT_ROOT, 'apps/chess/dist'),   3001)
+startAppServer(path.join(PROJECT_ROOT, 'apps/weather/dist'), 3002)
 
 // --------- 应用管理 ---------
 

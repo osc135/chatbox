@@ -34,6 +34,7 @@ import {
   searchByPromptEngineering,
 } from './tools'
 import { chessTools } from './toolsets/chess'
+import { weatherTools } from './toolsets/weather'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -297,6 +298,7 @@ export async function streamText(
     let tools: ToolSet = {
       ...mcpController.getAvailableTools(),
       ...chessTools,
+      ...weatherTools,
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool
