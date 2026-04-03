@@ -1,0 +1,51 @@
+# ── Stage 1: Chess app ────────────────────────────────────────────────────────
+FROM node:20-slim AS chess-builder
+WORKDIR /build
+COPY apps/chess/package.json apps/chess/package-lock.json ./
+RUN npm ci
+COPY apps/chess/ ./
+# Serve the chess app at /chess/ in production
+RUN VITE_BASE=/chess/ npm run build
+
+# ── Stage 2: Weather app ──────────────────────────────────────────────────────
+FROM node:20-slim AS weather-builder
+WORKDIR /build
+COPY apps/weather/package.json apps/weather/package-lock.json ./
+RUN npm ci
+COPY apps/weather/ ./
+# Serve the weather app at /weather/ in production
+RUN VITE_BASE=/weather/ npm run build
+
+# ── Stage 3: Main Chatbox web build ──────────────────────────────────────────
+FROM node:20-slim AS main-builder
+WORKDIR /build
+
+# pnpm 10 (matches lockfileVersion 9.0)
+RUN npm install -g pnpm@10
+
+# Prevent electron binary download — not needed for web build
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+# Install deps (cache-friendly: manifests first)
+COPY package.json pnpm-lock.yaml ./
+COPY release/app/package.json ./release/app/
+RUN pnpm install --frozen-lockfile
+
+# Copy source and build
+COPY . .
+
+# Inline the app subpaths so the LLM toolsets point to the right iframes
+ENV VITE_CHESS_APP_URL=/chess
+ENV VITE_WEATHER_APP_URL=/weather
+
+RUN CHATBOX_BUILD_PLATFORM=web pnpm run build:web
+
+# ── Stage 4: nginx runtime ────────────────────────────────────────────────────
+FROM nginx:alpine
+COPY --from=chess-builder   /build/dist                       /usr/share/nginx/html/chess
+COPY --from=weather-builder /build/dist                       /usr/share/nginx/html/weather
+COPY --from=main-builder    /build/release/app/dist/renderer  /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

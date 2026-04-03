@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // ── WMO weather code → description + emoji ───────────────────────────────────
 const WMO: Record<number, { label: string; emoji: string }> = {
@@ -65,7 +65,9 @@ interface WeatherData {
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 async function geocode(query: string): Promise<GeoResult> {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`
+  // Normalize "City, State" → "City State" — the API doesn't handle commas well
+  const normalizedQuery = query.replace(/,\s*/g, ' ').trim()
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(normalizedQuery)}&count=1&language=en&format=json`
   const res = await fetch(url)
   if (!res.ok) throw new Error('Geocoding request failed')
   const data = await res.json() as { results?: { name: string; country: string; latitude: number; longitude: number; timezone: string }[] }
@@ -108,6 +110,25 @@ async function fetchWeather(geo: GeoResult, fahrenheit: boolean): Promise<Weathe
   }
 }
 
+// ── postMessage helpers ───────────────────────────────────────────────────────
+function sendToParent(message: Record<string, unknown>) {
+  if (window.parent !== window) {
+    window.parent.postMessage(message, '*')
+  }
+}
+
+function buildSummary(data: WeatherData, fahrenheit: boolean): string {
+  const cur = data.current
+  const today = data.daily[0]
+  const unit = fahrenheit ? '°F' : '°C'
+  const speedUnit = fahrenheit ? 'mph' : 'km/h'
+  const conditions = (WMO[cur.code] ?? { label: 'Unknown' }).label.toLowerCase()
+  let s = `Currently ${cur.temperature}${unit} and ${conditions} in ${data.location.name}, ${data.location.country}.`
+  if (today) s += ` High of ${today.high}°, low of ${today.low}°.`
+  s += ` Humidity ${cur.humidity}%, wind ${cur.windspeed} ${speedUnit}.`
+  return s
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function WeatherApp() {
   const [weather, setWeather] = useState<WeatherData | null>(null)
@@ -115,6 +136,8 @@ export default function WeatherApp() {
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [inputValue, setInputValue] = useState('')
+  const invocationIdRef = useRef('weather-load')
+  const hasCompletedRef = useRef(false)
   const [fahrenheit, setFahrenheit] = useState<boolean>(() => {
     try { return localStorage.getItem('weather_unit') !== 'c' } catch { return true }
   })
@@ -132,11 +155,16 @@ export default function WeatherApp() {
     }
   }, [])
 
-  // Also listen for TOOL_INVOKE show_weather from parent
+  // Listen for TOOL_INVOKE show_weather / update_location from parent
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      const data = event.data as { type?: string; tool?: string; params?: { location?: string } } | undefined
-      if (data?.type === 'TOOL_INVOKE' && data.tool === 'show_weather' && data.params?.location) {
+      const data = event.data as { type?: string; tool?: string; invocationId?: string; params?: { location?: string } } | undefined
+      if (
+        data?.type === 'TOOL_INVOKE' &&
+        (data.tool === 'show_weather' || data.tool === 'update_location') &&
+        data.params?.location
+      ) {
+        invocationIdRef.current = data.invocationId ?? 'weather-load'
         setQuery(data.params.location)
         setInputValue(data.params.location)
       }
@@ -153,7 +181,35 @@ export default function WeatherApp() {
     setError(null)
     geocode(query)
       .then((geo) => fetchWeather(geo, fahrenheit))
-      .then((data) => { if (!cancelled) { setWeather(data); setLoading(false) } })
+      .then((data) => {
+        if (cancelled) return
+        setWeather(data)
+        setLoading(false)
+
+        sendToParent({
+          type: 'STATE_UPDATE',
+          pluginId: 'weather',
+          invocationId: invocationIdRef.current,
+          payload: {
+            location: `${data.location.name}, ${data.location.country}`,
+            temperature: data.current.temperature,
+            unit: fahrenheit ? '°F' : '°C',
+            conditions: (WMO[data.current.code] ?? { label: 'Unknown' }).label,
+            humidity: data.current.humidity,
+            wind: data.current.windspeed,
+            summary: buildSummary(data, fahrenheit),
+          },
+        })
+
+        if (!hasCompletedRef.current) {
+          hasCompletedRef.current = true
+          sendToParent({
+            type: 'COMPLETION',
+            pluginId: 'weather',
+            payload: { reason: 'data_loaded' },
+          })
+        }
+      })
       .catch((err: unknown) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setLoading(false) } })
     return () => { cancelled = true }
   }, [query, fahrenheit])

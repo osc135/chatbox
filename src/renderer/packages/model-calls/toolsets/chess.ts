@@ -1,8 +1,8 @@
 import { tool } from 'ai'
 import z from 'zod'
 
-// Chess app URL — in dev it runs on 3001, in prod it'll be a deployed URL
-const CHESS_APP_URL = 'http://localhost:3001'
+// Dev: localhost:3001. Prod (Railway): VITE_CHESS_APP_URL=/chess (same-origin subpath).
+const CHESS_APP_URL = (import.meta.env.VITE_CHESS_APP_URL as string | undefined) || 'http://localhost:3001'
 
 export const chessTools = {
   chess__start_game: tool({

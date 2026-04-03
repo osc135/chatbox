@@ -1,12 +1,29 @@
 import { tool } from 'ai'
 import z from 'zod'
 
-const WEATHER_APP_URL = 'http://localhost:3002'
+// Dev: localhost:3002. Prod (Railway): VITE_WEATHER_APP_URL=/weather (same-origin subpath).
+const WEATHER_APP_URL = (import.meta.env.VITE_WEATHER_APP_URL as string | undefined) || 'http://localhost:3002'
 
 export const weatherTools = {
+  weather__update_location: tool({
+    description:
+      'Update the weather display to show a different location. Use this when the weather app is already open and the user asks about weather somewhere else. The iframe updates automatically — do not tell the user to click anything or provide a link.',
+    inputSchema: z.object({
+      location: z.string().describe('City or place name, e.g. "London", "Sydney"'),
+    }),
+    execute: async (input: { location: string }) => {
+      return {
+        action: 'tool_invoke',
+        appId: 'weather',
+        tool: 'update_location',
+        params: { location: input.location },
+      }
+    },
+  }),
+
   weather__show_weather: tool({
     description:
-      'Show current weather and a 7-day forecast for a location. Call this tool immediately whenever the user mentions weather, temperature, forecast, rain, snow, or asks about conditions in any place. Do not ask for clarification — if a location is clear from context, call the tool right away.',
+      'Show current weather and a 7-day forecast for a location. The weather app renders inline in the chat — do not tell the user to click a link or visit a URL. Call this tool immediately whenever the user mentions weather, temperature, forecast, rain, snow, or asks about conditions in any place. Do not ask for clarification — if a location is clear from context, call the tool right away.',
     inputSchema: z.object({
       location: z.string().describe('City or place name, e.g. "Tokyo", "New York", "Paris"'),
     }),
