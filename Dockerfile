@@ -55,6 +55,6 @@ FROM nginx:alpine
 COPY --from=chess-builder   /build/dist                       /usr/share/nginx/html/chess
 COPY --from=weather-builder /build/dist                       /usr/share/nginx/html/weather
 COPY --from=main-builder    /build/release/app/dist/renderer  /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+EXPOSE 8080
+CMD sh -c "envsubst '\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
