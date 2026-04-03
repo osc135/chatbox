@@ -1,10 +1,8 @@
 {
-  "buildCommand": "bash build-vercel.sh",
-  "outputDirectory": "dist",
   "installCommand": "npm install -g pnpm@10 && pnpm install --frozen-lockfile",
+  "buildCommand": "NODE_OPTIONS='--max-old-space-size=4096' pnpm exec vite build --config vite.web.config.ts",
+  "outputDirectory": "release/app/dist/renderer",
   "rewrites": [
-    { "source": "/chess/(.*)", "destination": "/chess/$1" },
-    { "source": "/weather/(.*)", "destination": "/weather/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
