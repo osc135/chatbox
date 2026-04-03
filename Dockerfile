@@ -31,7 +31,7 @@ ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install deps (cache-friendly: manifests first)
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 COPY patches/ ./patches/
 # postinstall.cjs needs .erb/ to exist before pnpm install runs
 COPY .erb/ ./.erb/
@@ -48,7 +48,7 @@ ENV VITE_WEATHER_APP_URL=/weather
 # Raise Node heap limit — the full Vite build (MUI + Mantine + Mermaid + AI SDKs) OOMs at default 2GB
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-RUN CHATBOX_BUILD_PLATFORM=web pnpm run build:web
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm exec vite build --config vite.web.config.ts
 
 # ── Stage 4: nginx runtime ────────────────────────────────────────────────────
 FROM nginx:alpine
