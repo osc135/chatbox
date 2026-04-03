@@ -1,7 +1,7 @@
 {
   "buildCommand": "bash build-vercel.sh",
   "outputDirectory": "dist",
-  "installCommand": "echo skip",
+  "installCommand": "npm install -g pnpm@10 && pnpm install --frozen-lockfile",
   "rewrites": [
     { "source": "/chess/(.*)", "destination": "/chess/$1" },
     { "source": "/weather/(.*)", "destination": "/weather/$1" },
