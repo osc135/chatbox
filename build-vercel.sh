@@ -23,6 +23,8 @@ cp -r apps/weather/dist/. dist/weather/
 echo "Building main app..."
 npm install -g pnpm@10
 pnpm install --frozen-lockfile
+export VITE_CHESS_APP_URL=/chess
+export VITE_WEATHER_APP_URL=/weather
 NODE_OPTIONS="--max-old-space-size=4096" pnpm exec vite build --config vite.web.config.ts
 cp -r release/app/dist/renderer/. dist/
 
