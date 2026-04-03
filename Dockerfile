@@ -23,6 +23,9 @@ WORKDIR /build
 # pnpm 10 (matches lockfileVersion 9.0)
 RUN npm install -g pnpm@10
 
+# Build tools needed for native modules (zipfile, etc.)
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 # Prevent electron binary download — not needed for web build
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
@@ -30,6 +33,8 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # Install deps (cache-friendly: manifests first)
 COPY package.json pnpm-lock.yaml ./
 COPY patches/ ./patches/
+# postinstall.cjs needs .erb/ to exist before pnpm install runs
+COPY .erb/ ./.erb/
 COPY release/app/package.json ./release/app/
 RUN pnpm install --frozen-lockfile
 
