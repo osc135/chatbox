@@ -42,8 +42,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Inline the app subpaths so the LLM toolsets point to the right iframes
-ENV VITE_CHESS_APP_URL=/chess
-ENV VITE_WEATHER_APP_URL=/weather
+ENV VITE_CHESS_APP_URL=/chess/
+ENV VITE_WEATHER_APP_URL=/weather/
 
 # Raise Node heap limit — the full Vite build (MUI + Mantine + Mermaid + AI SDKs) OOMs at default 2GB
 ENV NODE_OPTIONS="--max-old-space-size=4096"
