@@ -1,4 +1,4 @@
-import { createSession, getSessionList } from '@/stores/chatStore'
+import { createSession, listSessionsMeta as getSessionList } from '@/stores/chatStore'
 
 const CHESS_SESSION_NAME = 'Chess'
 
