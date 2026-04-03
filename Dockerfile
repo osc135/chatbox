@@ -29,6 +29,7 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install deps (cache-friendly: manifests first)
 COPY package.json pnpm-lock.yaml ./
+COPY patches/ ./patches/
 COPY release/app/package.json ./release/app/
 RUN pnpm install --frozen-lockfile
 
