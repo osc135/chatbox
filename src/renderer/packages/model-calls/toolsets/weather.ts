@@ -13,10 +13,10 @@ export const weatherTools = {
     }),
     execute: async (input: { location: string }) => {
       return {
-        action: 'tool_invoke',
+        action: 'render_app',
         appId: 'weather',
-        tool: 'update_location',
-        params: { location: input.location },
+        appUrl: `${WEATHER_APP_URL}?location=${encodeURIComponent(input.location)}`,
+        location: input.location,
       }
     },
   }),

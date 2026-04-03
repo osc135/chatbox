@@ -21,7 +21,6 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
-  const [gameStarted, setGameStarted] = useState(false)
 
   // Send tool invocations to the iframe
   const sendToolInvoke = useCallback(
@@ -52,7 +51,6 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
       if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
 
       if (data.type === 'STATE_UPDATE') {
-        setGameStarted(true)
         if (onStateUpdate && data.payload && typeof data.payload === 'object') {
           onStateUpdate(data.payload as Record<string, unknown>)
         }
@@ -156,10 +154,8 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
     )
   }
 
-  const iframeHeight = !loaded ? 0 : gameStarted ? 500 : 220
-
   return (
-    <div style={{ margin: '8px 0', borderRadius: 10, overflow: 'hidden', border: '1px solid #2a2a2a' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#141414' }}>
       {!loaded && (
         <div
           style={{
@@ -179,10 +175,9 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
         sandbox="allow-scripts allow-same-origin"
         style={{
           width: '100%',
-          height: iframeHeight,
+          flex: 1,
           border: 'none',
           display: loaded ? 'block' : 'none',
-          transition: 'height 0.2s ease',
         }}
       />
     </div>

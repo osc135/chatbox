@@ -1,10 +1,12 @@
 import NiceModal from '@ebay/nice-modal-react'
-import { Button } from '@mantine/core'
-import type { Message, ModelProvider } from '@shared/types'
+import { ActionIcon, Button } from '@mantine/core'
+import type { Message, MessageAppPart, ModelProvider } from '@shared/types'
+import { IconX } from '@tabler/icons-react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useStore } from 'zustand'
+import AppEmbed from '@/components/chat/AppEmbed'
 import MessageList, { type MessageListRef } from '@/components/chat/MessageList'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import InputBox from '@/components/InputBox/InputBox'
@@ -36,6 +38,25 @@ function RouteComponent() {
   )
 
   const messageListRef = useRef<MessageListRef>(null)
+
+  // Side panel app state
+  const [activeApp, setActiveApp] = useState<MessageAppPart | null>(null)
+  const lastAppPartRef = useRef<MessageAppPart | null>(null)
+
+  // Open/replace panel when a new render_app part appears in the message list
+  useEffect(() => {
+    for (let i = currentMessageList.length - 1; i >= 0; i--) {
+      const parts = currentMessageList[i]?.contentParts ?? []
+      const appPart = parts.find((p): p is MessageAppPart => p.type === 'app')
+      if (appPart) {
+        if (appPart !== lastAppPartRef.current) {
+          lastAppPartRef.current = appPart
+          setActiveApp(appPart)
+        }
+        break
+      }
+    }
+  }, [currentMessageList])
 
   const goHome = useCallback(() => {
     navigate({ to: '/', replace: true })
@@ -166,29 +187,67 @@ function RouteComponent() {
   }, [currentSession?.settings?.provider, currentSession?.settings?.modelId])
 
   return currentSession ? (
-    <div className="flex flex-col h-full">
-      <Header session={currentSession} />
+    <div className="flex flex-row h-full overflow-hidden">
+      {/* Chat column */}
+      <div className="flex flex-col h-full min-w-0" style={{ flex: activeApp ? '0 0 50%' : '1 1 100%', transition: 'flex-basis 0.2s ease' }}>
+        <Header session={currentSession} />
+        <MessageList ref={messageListRef} key={`message-list${currentSessionId}`} currentSession={currentSession} />
+        <ErrorBoundary name="session-inputbox">
+          <InputBox
+            key={`input-box${currentSession.id}`}
+            sessionId={currentSession.id}
+            sessionType={currentSession.type}
+            model={model}
+            onStartNewThread={onStartNewThread}
+            onRollbackThread={onRollbackThread}
+            onSelectModel={onSelectModel}
+            onClickSessionSettings={onClickSessionSettings}
+            generating={!!lastGeneratingMessage}
+            onSubmit={onSubmit}
+            onStopGenerating={onStopGenerating}
+          />
+        </ErrorBoundary>
+        <ThreadHistoryDrawer session={currentSession} />
+      </div>
 
-      {/* MessageList 设置 key，确保每个 session 对应新的 MessageList 实例 */}
-      <MessageList ref={messageListRef} key={`message-list${currentSessionId}`} currentSession={currentSession} />
-
-      {/* <ScrollButtons /> */}
-      <ErrorBoundary name="session-inputbox">
-        <InputBox
-          key={`input-box${currentSession.id}`}
-          sessionId={currentSession.id}
-          sessionType={currentSession.type}
-          model={model}
-          onStartNewThread={onStartNewThread}
-          onRollbackThread={onRollbackThread}
-          onSelectModel={onSelectModel}
-          onClickSessionSettings={onClickSessionSettings}
-          generating={!!lastGeneratingMessage}
-          onSubmit={onSubmit}
-          onStopGenerating={onStopGenerating}
-        />
-      </ErrorBoundary>
-      <ThreadHistoryDrawer session={currentSession} />
+      {/* App panel */}
+      {activeApp && (
+        <div
+          className="flex flex-col h-full"
+          style={{
+            flex: '0 0 50%',
+            borderLeft: '1px solid #2a2a2a',
+            background: '#141414',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 16px',
+              borderBottom: '1px solid #2a2a2a',
+              background: '#1a1a1a',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>
+                {activeApp.appId === 'chess' ? '♟' : activeApp.appId === 'weather' ? '🌤' : '◻'}
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', textTransform: 'capitalize' }}>
+                {activeApp.appId}
+              </span>
+            </div>
+            <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setActiveApp(null)} title="Close panel">
+              <IconX size={14} />
+            </ActionIcon>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <AppEmbed part={activeApp} sessionId={currentSession.id} />
+          </div>
+        </div>
+      )}
     </div>
   ) : (
     !isFetching && (

@@ -32,9 +32,26 @@ function wmo(code: number) {
   return WMO[code] ?? { label: 'Unknown', emoji: '🌡️' }
 }
 
+function getWeatherGradient(code: number): string {
+  if (code <= 1)  return 'linear-gradient(160deg, #1565C0 0%, #0d3d7a 100%)'  // clear
+  if (code === 2) return 'linear-gradient(160deg, #2d6a9f 0%, #1a3f63 100%)'  // partly cloudy
+  if (code === 3) return 'linear-gradient(160deg, #3a3f52 0%, #1e2130 100%)'  // overcast
+  if (code <= 48) return 'linear-gradient(160deg, #3a3a3a 0%, #1a1a1a 100%)'  // fog
+  if (code <= 67) return 'linear-gradient(160deg, #1a3a5c 0%, #0a1828 100%)'  // rain/drizzle
+  if (code <= 77) return 'linear-gradient(160deg, #2a4570 0%, #141e35 100%)'  // snow
+  if (code <= 82) return 'linear-gradient(160deg, #1a3050 0%, #08111e 100%)'  // showers
+  if (code <= 86) return 'linear-gradient(160deg, #2a4570 0%, #141e35 100%)'  // snow showers
+  return 'linear-gradient(160deg, #1a1040 0%, #08060e 100%)'                  // thunderstorm
+}
+
 function shortDay(dateStr: string) {
   const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('en-US', { weekday: 'short' })
+}
+
+function formatTime(isoStr: string): string {
+  const d = new Date(isoStr)
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -54,6 +71,12 @@ interface WeatherData {
     humidity: number
     windspeed: number
     code: number
+    uvIndex: number
+  }
+  today: {
+    precipProb: number
+    sunrise: string
+    sunset: string
   }
   daily: {
     date: string
@@ -80,8 +103,8 @@ async function fetchWeather(geo: GeoResult, fahrenheit: boolean): Promise<Weathe
     latitude: String(geo.latitude),
     longitude: String(geo.longitude),
     timezone: geo.timezone,
-    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,weathercode',
-    daily: 'weathercode,temperature_2m_max,temperature_2m_min',
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,weathercode,uv_index',
+    daily: 'weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
     forecast_days: '7',
     ...(fahrenheit ? { temperature_unit: 'fahrenheit', windspeed_unit: 'mph' } : {}),
   })
@@ -89,8 +112,8 @@ async function fetchWeather(geo: GeoResult, fahrenheit: boolean): Promise<Weathe
   const res = await fetch(url)
   if (!res.ok) throw new Error('Weather request failed')
   const d = await res.json() as {
-    current: { temperature_2m: number; apparent_temperature: number; relative_humidity_2m: number; windspeed_10m: number; weathercode: number }
-    daily: { time: string[]; weathercode: number[]; temperature_2m_max: number[]; temperature_2m_min: number[] }
+    current: { temperature_2m: number; apparent_temperature: number; relative_humidity_2m: number; windspeed_10m: number; weathercode: number; uv_index: number }
+    daily: { time: string[]; weathercode: number[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[]; sunrise: string[]; sunset: string[] }
   }
   return {
     location: geo,
@@ -100,6 +123,12 @@ async function fetchWeather(geo: GeoResult, fahrenheit: boolean): Promise<Weathe
       humidity: d.current.relative_humidity_2m,
       windspeed: Math.round(d.current.windspeed_10m),
       code: d.current.weathercode,
+      uvIndex: Math.round(d.current.uv_index),
+    },
+    today: {
+      precipProb: d.daily.precipitation_probability_max[0] ?? 0,
+      sunrise: d.daily.sunrise[0] ?? '',
+      sunset: d.daily.sunset[0] ?? '',
     },
     daily: d.daily.time.map((date, i) => ({
       date,
@@ -230,8 +259,10 @@ export default function WeatherApp() {
   const cur = weather?.current
   const curWmo = cur ? wmo(cur.code) : null
 
+  const gradient = cur ? getWeatherGradient(cur.code) : 'linear-gradient(160deg, #1e2030 0%, #0d0f1a 100%)'
+
   return (
-    <div className="app">
+    <div className="app" style={{ background: gradient }}>
       <div className="top-row">
         <form className="search-bar" onSubmit={handleSearch}>
           <input
@@ -252,46 +283,68 @@ export default function WeatherApp() {
 
       {!loading && !error && weather && cur && curWmo && (
         <>
-          <div className="location-name">
-            {weather.location.name}, {weather.location.country}
-          </div>
-
-          <div className="current-card">
-            <div className="current-left">
+          {/* Center block: location + current conditions + detail cards */}
+          <div className="weather-body">
+            <div className="location-name">
+              {weather.location.name}, {weather.location.country}
+            </div>
+            <div className="current-section">
               <div className="current-emoji">{curWmo.emoji}</div>
               <div className="current-temp">{cur.temperature}{tempUnit}</div>
               <div className="current-desc">{curWmo.label}</div>
             </div>
-            <div className="current-right">
-              <div className="detail-row">
-                <span className="detail-label">Feels like</span>
-                <span className="detail-val">{cur.feelsLike}{tempUnit}</span>
+            <div className="detail-grid">
+              <div className="detail-card">
+                <span className="detail-card-icon">🌡️</span>
+                <span className="detail-card-label">Feels like</span>
+                <span className="detail-card-val">{cur.feelsLike}{tempUnit}</span>
               </div>
-              <div className="detail-row">
-                <span className="detail-label">Humidity</span>
-                <span className="detail-val">{cur.humidity}%</span>
+              <div className="detail-card">
+                <span className="detail-card-icon">💧</span>
+                <span className="detail-card-label">Humidity</span>
+                <span className="detail-card-val">{cur.humidity}%</span>
               </div>
-              <div className="detail-row">
-                <span className="detail-label">Wind</span>
-                <span className="detail-val">{cur.windspeed} {speedUnit}</span>
+              <div className="detail-card">
+                <span className="detail-card-icon">💨</span>
+                <span className="detail-card-label">Wind</span>
+                <span className="detail-card-val">{cur.windspeed} <span className="detail-card-unit">{speedUnit}</span></span>
+              </div>
+              <div className="detail-card">
+                <span className="detail-card-icon">🌧️</span>
+                <span className="detail-card-label">Rain chance</span>
+                <span className="detail-card-val">{weather.today.precipProb}%</span>
+              </div>
+              <div className="detail-card">
+                <span className="detail-card-icon">☀️</span>
+                <span className="detail-card-label">UV Index</span>
+                <span className="detail-card-val">{cur.uvIndex}</span>
+              </div>
+              <div className="detail-card">
+                <span className="detail-card-icon">🌅</span>
+                <span className="detail-card-label">Sunrise</span>
+                <span className="detail-card-val detail-card-val--sm">{weather.today.sunrise ? formatTime(weather.today.sunrise) : '—'}</span>
               </div>
             </div>
           </div>
 
-          <div className="forecast">
-            {weather.daily.map((day) => {
-              const w = wmo(day.codeDay)
-              return (
-                <div key={day.date} className="forecast-day">
-                  <div className="forecast-day-name">{shortDay(day.date)}</div>
-                  <div className="forecast-emoji">{w.emoji}</div>
-                  <div className="forecast-temps">
-                    <span className="forecast-high">{day.high}°</span>
-                    <span className="forecast-low">{day.low}°</span>
+          {/* Forecast pinned at bottom */}
+          <div className="forecast-section">
+            <div className="forecast-label">7-Day Forecast</div>
+            <div className="forecast">
+              {weather.daily.map((day, i) => {
+                const w = wmo(day.codeDay)
+                return (
+                  <div key={day.date} className={`forecast-day${i === 0 ? ' today' : ''}`}>
+                    <div className="forecast-day-name">{i === 0 ? 'Today' : shortDay(day.date)}</div>
+                    <div className="forecast-emoji">{w.emoji}</div>
+                    <div className="forecast-temps">
+                      <span className="forecast-high">{day.high}°</span>
+                      <span className="forecast-low">{day.low}°</span>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </>
       )}
