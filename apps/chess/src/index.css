@@ -6,16 +6,263 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #1a1a2e;
-  color: #e0e0e0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  background: transparent;
+  color: #d4d4d4;
 }
 
 #root {
   width: 100%;
-  max-width: 600px;
-  padding: 16px;
+  padding: 12px;
 }
+
+/* Difficulty picker */
+.picker {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.picker h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 8px;
+}
+
+.picker .subtitle {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+.difficulty-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 24px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.difficulty-card {
+  padding: 14px 20px;
+  border-radius: 10px;
+  border: 2px solid #3a3a3a;
+  background: #2a2a2a;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  min-width: 100px;
+  text-align: center;
+}
+
+.difficulty-card:hover {
+  border-color: #666;
+  background: #333;
+}
+
+.difficulty-card.selected {
+  border-color: #b58863;
+  background: #3d2e1e;
+  color: #f0d9b5;
+}
+
+.difficulty-card .label {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.difficulty-card .desc {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.start-btn {
+  padding: 10px 40px;
+  border-radius: 8px;
+  border: none;
+  background: #b58863;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.start-btn:hover {
+  background: #c9975a;
+}
+
+/* Game layout */
+.game-container {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.board-column {
+  flex-shrink: 0;
+}
+
+.sidebar {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.turn-indicator {
+  font-size: 13px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.turn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.turn-dot.white { background: #f0d9b5; }
+.turn-dot.black { background: #b58863; }
+.turn-dot.thinking { animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.difficulty-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #888;
+  text-transform: capitalize;
+  border: 1px solid #3a3a3a;
+}
+
+/* Move history */
+.move-history {
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  padding: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.move-history h4 {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.move-row {
+  display: flex;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  line-height: 1.8;
+}
+
+.move-num {
+  color: #555;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.move-white, .move-black {
+  flex: 1;
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.move-white { color: #f0d9b5; }
+.move-black { color: #b58863; }
+
+.move-history::-webkit-scrollbar { width: 4px; }
+.move-history::-webkit-scrollbar-track { background: transparent; }
+.move-history::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* Check indicator */
+.check-banner {
+  text-align: center;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e85d5d;
+  background: rgba(232, 93, 93, 0.1);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* Game over */
+.game-over-panel {
+  text-align: center;
+  padding: 16px;
+  border-radius: 10px;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+}
+
+.game-over-panel .result-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin-bottom: 12px;
+}
+
+.game-over-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-primary {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  background: #b58863;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-primary:hover { background: #c9975a; }
+
+.btn-secondary {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-secondary:hover { border-color: #555; color: #ccc; }

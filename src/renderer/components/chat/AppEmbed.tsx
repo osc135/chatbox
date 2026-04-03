@@ -1,15 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { MessageAppPart } from '@shared/types'
+import { fetchChessOpponentMove } from '@/packages/chess-opponent-move'
+
+type ChessOpponentMoveResultMsg = {
+  type: 'OPPONENT_MOVE_RESULT'
+  pluginId: 'chess'
+  requestId: string
+  uci?: string
+  error?: string
+}
 
 interface AppEmbedProps {
   part: MessageAppPart
+  /** Required for chess LLM opponent (REQUEST_OPPONENT_MOVE). */
+  sessionId?: string
   onStateUpdate?: (state: Record<string, unknown>) => void
 }
 
-export default function AppEmbed({ part, onStateUpdate }: AppEmbedProps) {
+export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
+  const [gameStarted, setGameStarted] = useState(false)
 
   // Send tool invocations to the iframe
   const sendToolInvoke = useCallback(
@@ -32,11 +44,18 @@ export default function AppEmbed({ part, onStateUpdate }: AppEmbedProps) {
   // Listen for messages from the iframe
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      const data = event.data
-      if (!data?.pluginId || data.pluginId !== part.appId) return
+      const data = event.data as Record<string, unknown> | undefined
+      if (!data || data.pluginId !== part.appId) return
+      // Only handle messages originating from this AppEmbed's iframe to avoid
+      // multiple AppEmbed instances (one per chess message in history) all
+      // responding to the same events.
+      if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
 
-      if (data.type === 'STATE_UPDATE' && onStateUpdate) {
-        onStateUpdate(data.payload)
+      if (data.type === 'STATE_UPDATE') {
+        setGameStarted(true)
+        if (onStateUpdate && data.payload && typeof data.payload === 'object') {
+          onStateUpdate(data.payload as Record<string, unknown>)
+        }
       }
 
       if (data.type === 'COMPLETION') {
@@ -46,22 +65,71 @@ export default function AppEmbed({ part, onStateUpdate }: AppEmbedProps) {
       if (data.type === 'ERROR') {
         console.error(`[AppEmbed] ${part.appId} error:`, data.payload)
       }
+
+      if (data.type === 'REQUEST_OPPONENT_MOVE' && part.appId === 'chess') {
+        const requestId = data.requestId as string | undefined
+        const fen = data.fen as string | undefined
+        const difficulty = data.difficulty as string | undefined
+        if (
+          !requestId ||
+          !fen ||
+          (difficulty !== 'easy' && difficulty !== 'medium' && difficulty !== 'hard')
+        ) {
+          return
+        }
+
+        const replyToIframe = (msg: ChessOpponentMoveResultMsg) => {
+          iframeRef.current?.contentWindow?.postMessage(msg, '*')
+        }
+
+        if (!sessionId) {
+          replyToIframe({
+            type: 'OPPONENT_MOVE_RESULT',
+            pluginId: 'chess',
+            requestId,
+            error: 'no_session',
+          })
+          return
+        }
+
+        void fetchChessOpponentMove(sessionId, fen, difficulty).then((moveResult) => {
+          if ('uci' in moveResult) {
+            replyToIframe({
+              type: 'OPPONENT_MOVE_RESULT',
+              pluginId: 'chess',
+              requestId,
+              uci: moveResult.uci,
+            })
+          } else {
+            replyToIframe({
+              type: 'OPPONENT_MOVE_RESULT',
+              pluginId: 'chess',
+              requestId,
+              error: moveResult.error,
+            })
+          }
+        })
+      }
     }
 
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
-  }, [part.appId, onStateUpdate])
+  }, [part.appId, sessionId, onStateUpdate])
 
-  // Auto-invoke start_game once the iframe loads
+  // Forward tool invocations dispatched by abstract-ai-sdk to the iframe.
+  // Only the AppEmbed whose iframe is actively loaded handles the event,
+  // which prevents old/stale instances from double-invoking.
   useEffect(() => {
-    if (loaded && part.appId === 'chess') {
-      // Small delay to let the app initialize
-      const timer = setTimeout(() => {
-        sendToolInvoke('start_game', {})
-      }, 500)
-      return () => clearTimeout(timer)
+    const handler = (event: Event) => {
+      if (!loaded) return
+      const { appId, tool, params } = (event as CustomEvent<{ appId: string; tool: string; params: Record<string, unknown> }>).detail
+      if (appId === part.appId) {
+        sendToolInvoke(tool, params)
+      }
     }
-  }, [loaded, part.appId, sendToolInvoke])
+    window.addEventListener('app:toolInvoke', handler)
+    return () => window.removeEventListener('app:toolInvoke', handler)
+  }, [part.appId, loaded, sendToolInvoke])
 
   // Loading timeout
   useEffect(() => {
@@ -77,28 +145,31 @@ export default function AppEmbed({ part, onStateUpdate }: AppEmbedProps) {
         style={{
           padding: 16,
           borderRadius: 8,
-          background: '#2a2a3e',
-          color: '#ff6b6b',
+          background: '#1e1e1e',
+          color: '#e85d5d',
           textAlign: 'center',
+          fontSize: 13,
         }}
       >
-        Failed to load {part.appId} app. Please try again.
+        Failed to load {part.appId}. Please try again.
       </div>
     )
   }
 
+  const iframeHeight = !loaded ? 0 : gameStarted ? 500 : 220
+
   return (
-    <div style={{ margin: '8px 0', borderRadius: 12, overflow: 'hidden', border: '1px solid #333' }}>
+    <div style={{ margin: '8px 0', borderRadius: 10, overflow: 'hidden', border: '1px solid #2a2a2a' }}>
       {!loaded && (
         <div
           style={{
-            padding: 24,
+            padding: 20,
             textAlign: 'center',
-            background: '#1a1a2e',
-            color: '#aaa',
+            color: '#666',
+            fontSize: 13,
           }}
         >
-          Loading {part.appId}...
+          Loading...
         </div>
       )}
       <iframe
@@ -108,10 +179,10 @@ export default function AppEmbed({ part, onStateUpdate }: AppEmbedProps) {
         sandbox="allow-scripts allow-same-origin"
         style={{
           width: '100%',
-          height: loaded ? 620 : 0,
+          height: iframeHeight,
           border: 'none',
           display: loaded ? 'block' : 'none',
-          borderRadius: 12,
+          transition: 'height 0.2s ease',
         }}
       />
     </div>

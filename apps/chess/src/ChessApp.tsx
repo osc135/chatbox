@@ -1,11 +1,138 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import type React from 'react'
 import { Chess, Square } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
-import { useStockfish } from './useStockfish'
-import { sendToParent, IncomingMessage } from './postMessage'
+import { sendToParent, IncomingMessage, waitForOpponentUci } from './postMessage'
 
-type Difficulty = 'easy' | 'medium' | 'hard'
+// --- Wooden chessboard sounds (Web Audio API) ---
+function makeCtx() {
+  return new AudioContext()
+}
+
+// Synthesizes a wooden "thock" from two noise layers: a bright click transient + a resonant body
+function woodThock(ctx: AudioContext, t: number, pitch: number, vol: number, decay: number) {
+  const bufLen = Math.ceil(ctx.sampleRate * (decay + 0.05))
+  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate)
+  const data = buf.getChannelData(0)
+  for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1
+
+  // Bright click transient (very short burst of high-frequency noise)
+  const click = ctx.createBufferSource()
+  click.buffer = buf
+  const hpf = ctx.createBiquadFilter()
+  hpf.type = 'highpass'
+  hpf.frequency.setValueAtTime(4500, t)
+  const clickEnv = ctx.createGain()
+  clickEnv.gain.setValueAtTime(vol * 0.55, t)
+  clickEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.014)
+  click.connect(hpf)
+  hpf.connect(clickEnv)
+  clickEnv.connect(ctx.destination)
+  click.start(t)
+  click.stop(t + 0.018)
+
+  // Resonant body (the warm "thock" of wood)
+  const body = ctx.createBufferSource()
+  body.buffer = buf
+  const bpf = ctx.createBiquadFilter()
+  bpf.type = 'bandpass'
+  bpf.frequency.setValueAtTime(pitch, t)
+  bpf.Q.setValueAtTime(4.5, t)
+  const bodyEnv = ctx.createGain()
+  bodyEnv.gain.setValueAtTime(vol, t)
+  bodyEnv.gain.exponentialRampToValueAtTime(0.001, t + decay)
+  body.connect(bpf)
+  bpf.connect(bodyEnv)
+  bodyEnv.connect(ctx.destination)
+  body.start(t)
+  body.stop(t + decay + 0.01)
+}
+
+function playPlayerMove(isCapture: boolean) {
+  const ctx = makeCtx()
+  const t = ctx.currentTime
+  if (isCapture) {
+    woodThock(ctx, t, 520, 0.90, 0.18) // heavier, lower — piece taken off board
+  } else {
+    woodThock(ctx, t, 700, 0.65, 0.12)
+  }
+}
+
+function playOpponentMove(isCapture: boolean) {
+  const ctx = makeCtx()
+  const t = ctx.currentTime
+  if (isCapture) {
+    woodThock(ctx, t, 480, 0.85, 0.18)
+  } else {
+    woodThock(ctx, t, 620, 0.55, 0.12) // slightly softer/lower than player
+  }
+}
+
+function playCheckSound() {
+  const ctx = makeCtx()
+  const t = ctx.currentTime
+  woodThock(ctx, t, 720, 0.65, 0.11)
+  woodThock(ctx, t + 0.08, 860, 0.50, 0.10) // double-thock for urgency
+}
+
+function playVictory() {
+  const ctx = makeCtx()
+  const t = ctx.currentTime
+  woodThock(ctx, t, 680, 0.65, 0.12)
+  woodThock(ctx, t + 0.16, 760, 0.65, 0.12)
+  woodThock(ctx, t + 0.30, 880, 0.80, 0.20) // confident final thock
+}
+
+function playDefeat() {
+  const ctx = makeCtx()
+  const t = ctx.currentTime
+  woodThock(ctx, t, 490, 0.55, 0.22) // single quiet heavy thock
+}
+
+function playDrawSound() {
+  const ctx = makeCtx()
+  const t = ctx.currentTime
+  woodThock(ctx, t, 600, 0.50, 0.14)
+  woodThock(ctx, t + 0.20, 600, 0.35, 0.14)
+}
+// --- End wooden chessboard sounds ---
+
+type Difficulty = 'super_dumb' | 'easy' | 'medium' | 'hard'
 type GameStatus = 'waiting' | 'playing' | 'game_over'
+
+const DIFFICULTY_INFO: Record<Difficulty, { label: string; desc: string }> = {
+  super_dumb: { label: 'Super dumb', desc: 'Random legal moves (no API)' },
+  easy: { label: 'Beginner', desc: 'LLM plays weakly' },
+  medium: { label: 'Intermediate', desc: 'LLM club-level' },
+  hard: { label: 'Expert', desc: 'LLM strong play' },
+}
+
+function randomLegalUci(g: Chess): string {
+  const moves = g.moves({ verbose: true })
+  if (moves.length === 0) return ''
+  const m = moves[Math.floor(Math.random() * moves.length)]!
+  let uci = m.from + m.to
+  if (m.promotion) uci += m.promotion
+  return uci
+}
+
+/** Mutates g on success. */
+function tryApplyUci(g: Chess, uci: string, addMove: (san: string) => void): boolean {
+  if (!uci || uci.length < 4) return false
+  const from = uci.slice(0, 2) as Square
+  const to = uci.slice(2, 4) as Square
+  const promotion = uci[4] as 'q' | 'r' | 'b' | 'n' | undefined
+  try {
+    const move = g.move({ from, to, promotion: promotion || undefined })
+    if (move) {
+      addMove(move.san)
+      return true
+    }
+  } catch {
+    return false
+  }
+  return false
+}
 
 export default function ChessApp() {
   const [game, setGame] = useState(new Chess())
@@ -13,7 +140,37 @@ export default function ChessApp() {
   const [gameStatus, setGameStatus] = useState<GameStatus>('waiting')
   const [thinking, setThinking] = useState(false)
   const [result, setResult] = useState<string | null>(null)
-  const { getBestMove } = useStockfish(difficulty)
+  const [moveHistory, setMoveHistory] = useState<string[]>([])
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
+  const [legalMoveSquares, setLegalMoveSquares] = useState<Square[]>([])
+  const moveListRef = useRef<HTMLDivElement>(null)
+
+  const boardSize = Math.min(window.innerWidth - 200, 420)
+
+  // Sound: play on each new move
+  useEffect(() => {
+    if (moveHistory.length === 0) return
+    const lastSan = moveHistory[moveHistory.length - 1]
+    if (!lastSan) return
+    if (lastSan.endsWith('#')) return // game-over sound handles checkmate
+    const isOpponentMove = moveHistory.length % 2 === 0
+    const isCapture = lastSan.includes('x')
+    if (lastSan.endsWith('+')) {
+      playCheckSound()
+    } else if (isOpponentMove) {
+      playOpponentMove(isCapture)
+    } else {
+      playPlayerMove(isCapture)
+    }
+  }, [moveHistory])
+
+  // Sound: play on game over
+  useEffect(() => {
+    if (!result) return
+    if (result.includes('White wins')) playVictory()
+    else if (result.includes('Black wins') || result === 'You resigned') playDefeat()
+    else playDrawSound()
+  }, [result])
 
   const getStatus = useCallback(
     (g: Chess): 'in_progress' | 'checkmate' | 'stalemate' | 'draw' => {
@@ -51,44 +208,62 @@ export default function ChessApp() {
 
         if (g.isCheckmate()) {
           winner = g.turn() === 'w' ? 'black' : 'white'
-          resultText = `Checkmate! ${winner === 'white' ? 'White' : 'Black'} wins!`
+          resultText = winner === 'white' ? 'White wins by checkmate' : 'Black wins by checkmate'
         } else if (g.isStalemate()) {
-          resultText = 'Stalemate - Draw!'
+          resultText = 'Stalemate'
         } else if (g.isDraw()) {
-          resultText = 'Draw!'
+          resultText = 'Draw'
         }
 
         setResult(resultText)
         sendToParent({
           type: 'COMPLETION',
           pluginId: 'chess',
-          payload: {
-            result: getStatus(g),
-            winner,
-            reason: 'game_over',
-          },
+          payload: { result: getStatus(g), winner, reason: 'game_over' },
         })
       }
     },
     [getStatus],
   )
 
-  const makeStockfishMove = useCallback(
+  const addMove = useCallback((san: string) => {
+    setMoveHistory((prev) => [...prev, san])
+    setTimeout(() => moveListRef.current?.scrollTo(0, moveListRef.current.scrollHeight), 50)
+  }, [])
+
+  const makeOpponentMove = useCallback(
     async (g: Chess, invocationId: string) => {
+      if (g.isGameOver()) return
+
       setThinking(true)
-      const bestMove = await getBestMove(g.fen())
-      if (bestMove && !g.isGameOver()) {
-        const from = bestMove.slice(0, 2) as Square
-        const to = bestMove.slice(2, 4) as Square
-        const promotion = bestMove[4] as 'q' | 'r' | 'b' | 'n' | undefined
-        g.move({ from, to, promotion: promotion || 'q' })
+      try {
+        let uci: string
+        if (difficulty === 'super_dumb') {
+          uci = randomLegalUci(g)
+        } else {
+          uci = await waitForOpponentUci(g.fen(), difficulty)
+          if (!uci) {
+            uci = randomLegalUci(g)
+          }
+        }
+
+        if (!uci) return
+
+        let appliedUci = uci
+        if (!tryApplyUci(g, uci, addMove)) {
+          const fb = randomLegalUci(g)
+          if (!fb || !tryApplyUci(g, fb, addMove)) return
+          appliedUci = fb
+        }
+
         setGame(new Chess(g.fen()))
-        sendStateUpdate(g, invocationId, bestMove)
+        sendStateUpdate(g, invocationId, appliedUci)
         checkGameEnd(g)
+      } finally {
+        setThinking(false)
       }
-      setThinking(false)
     },
-    [getBestMove, sendStateUpdate, checkGameEnd],
+    [difficulty, sendStateUpdate, checkGameEnd, addMove],
   )
 
   const startGame = useCallback(
@@ -97,6 +272,9 @@ export default function ChessApp() {
       setGame(newGame)
       setGameStatus('playing')
       setResult(null)
+      setMoveHistory([])
+      setSelectedSquare(null)
+      setLegalMoveSquares([])
       sendStateUpdate(newGame, invocationId)
     },
     [sendStateUpdate],
@@ -116,7 +294,8 @@ export default function ChessApp() {
 
       const g = new Chess(game.fen())
       try {
-        g.move(move)
+        const result = g.move(move)
+        if (result) addMove(result.san)
       } catch {
         sendToParent({
           type: 'ERROR',
@@ -131,38 +310,105 @@ export default function ChessApp() {
       sendStateUpdate(g, invocationId, move)
 
       if (!g.isGameOver()) {
-        await makeStockfishMove(g, invocationId)
+        await makeOpponentMove(g, invocationId)
       } else {
         checkGameEnd(g)
       }
     },
-    [game, gameStatus, sendStateUpdate, makeStockfishMove, checkGameEnd],
+    [game, gameStatus, sendStateUpdate, makeOpponentMove, checkGameEnd, addMove],
+  )
+
+  const clearSelection = useCallback(() => {
+    setSelectedSquare(null)
+    setLegalMoveSquares([])
+  }, [])
+
+  const selectSquare = useCallback(
+    (square: Square) => {
+      const moves = game.moves({ verbose: true, square })
+      if (moves.length === 0) {
+        clearSelection()
+        return
+      }
+      setSelectedSquare(square)
+      setLegalMoveSquares(moves.map((m) => m.to as Square))
+    },
+    [game, clearSelection],
+  )
+
+  const onSquareClick = useCallback(
+    (square: Square) => {
+      if (gameStatus !== 'playing' || thinking || game.turn() !== 'w') return
+
+      // If a piece is already selected and we clicked a legal destination, make the move
+      if (selectedSquare && legalMoveSquares.includes(square)) {
+        const g = new Chess(game.fen())
+        let moveResult
+        try {
+          moveResult = g.move({ from: selectedSquare, to: square, promotion: 'q' })
+        } catch {
+          clearSelection()
+          return
+        }
+        clearSelection()
+        if (!moveResult) return
+        addMove(moveResult.san)
+        const moveStr = `${selectedSquare}${square}`
+        setGame(new Chess(g.fen()))
+        sendStateUpdate(g, 'ui-move', moveStr)
+        if (!g.isGameOver()) {
+          void makeOpponentMove(g, 'ui-move')
+        } else {
+          checkGameEnd(g)
+        }
+        return
+      }
+
+      // Select the clicked square if it has a white piece
+      const piece = game.get(square)
+      if (piece && piece.color === 'w') {
+        if (selectedSquare === square) {
+          clearSelection()
+        } else {
+          selectSquare(square)
+        }
+      } else {
+        clearSelection()
+      }
+    },
+    [
+      game, gameStatus, thinking, selectedSquare, legalMoveSquares,
+      clearSelection, selectSquare, addMove, sendStateUpdate, makeOpponentMove, checkGameEnd,
+    ],
   )
 
   const onPieceDrop = useCallback(
     (sourceSquare: Square, targetSquare: Square): boolean => {
       if (gameStatus !== 'playing' || thinking || game.turn() !== 'w') return false
 
+      clearSelection()
       const g = new Chess(game.fen())
+      let moveResult
       try {
-        g.move({ from: sourceSquare, to: targetSquare, promotion: 'q' })
+        moveResult = g.move({ from: sourceSquare, to: targetSquare, promotion: 'q' })
       } catch {
         return false
       }
 
+      if (moveResult) addMove(moveResult.san)
       const moveStr = `${sourceSquare}${targetSquare}`
       setGame(new Chess(g.fen()))
       sendStateUpdate(g, 'ui-move', moveStr)
 
       if (!g.isGameOver()) {
-        makeStockfishMove(g, 'ui-move')
+        void makeOpponentMove(g, 'ui-move')
       } else {
         checkGameEnd(g)
       }
 
       return true
     },
-    [game, gameStatus, thinking, sendStateUpdate, makeStockfishMove, checkGameEnd],
+    [game, gameStatus, thinking, clearSelection, sendStateUpdate, makeOpponentMove, checkGameEnd, addMove],
   )
 
   // Listen for postMessage from platform
@@ -192,7 +438,7 @@ export default function ChessApp() {
           break
         case 'resign':
           setGameStatus('game_over')
-          setResult('You resigned.')
+          setResult('You resigned')
           sendToParent({
             type: 'COMPLETION',
             pluginId: 'chess',
@@ -206,134 +452,121 @@ export default function ChessApp() {
     return () => window.removeEventListener('message', handler)
   }, [game, gameStatus, startGame, makeMove, getStatus])
 
-  // Difficulty selector before game starts
+  // Difficulty picker
   if (gameStatus === 'waiting') {
+    const difficulties: Difficulty[] = ['super_dumb', 'easy', 'medium', 'hard']
     return (
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ marginBottom: 24, fontSize: 28 }}>Chess</h1>
-        <p style={{ marginBottom: 24, color: '#aaa' }}>Select difficulty to start</p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
-          {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
+      <div className="picker">
+        <h2>Play Chess</h2>
+        <p className="subtitle">Choose your difficulty</p>
+        <div className="difficulty-cards">
+          {difficulties.map((d) => (
             <button
               key={d}
+              className={`difficulty-card ${difficulty === d ? 'selected' : ''}`}
               onClick={() => setDifficulty(d)}
-              style={{
-                padding: '10px 24px',
-                borderRadius: 8,
-                border: difficulty === d ? '2px solid #7c5cbf' : '2px solid #333',
-                background: difficulty === d ? '#7c5cbf' : '#2a2a3e',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: 16,
-                textTransform: 'capitalize',
-              }}
             >
-              {d}
+              <div className="label">{DIFFICULTY_INFO[d].label}</div>
+              <div className="desc">{DIFFICULTY_INFO[d].desc}</div>
             </button>
           ))}
         </div>
-        <button
-          onClick={() => startGame('ui-start')}
-          style={{
-            padding: '12px 48px',
-            borderRadius: 8,
-            border: 'none',
-            background: '#7c5cbf',
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 18,
-            fontWeight: 600,
-          }}
-        >
+        <button className="start-btn" onClick={() => startGame('ui-start')}>
           Start Game
         </button>
       </div>
     )
   }
 
+  // Move history grouped into pairs
+  const movePairs: { num: number; white: string; black?: string }[] = []
+  for (let i = 0; i < moveHistory.length; i += 2) {
+    movePairs.push({
+      num: Math.floor(i / 2) + 1,
+      white: moveHistory[i],
+      black: moveHistory[i + 1],
+    })
+  }
+
+  // Square highlight styles for selected piece and its legal moves
+  const customSquareStyles: Record<string, React.CSSProperties> = {}
+  if (selectedSquare) {
+    customSquareStyles[selectedSquare] = { backgroundColor: 'rgba(255, 215, 0, 0.55)' }
+    for (const sq of legalMoveSquares) {
+      const isCapture = !!game.get(sq)
+      customSquareStyles[sq] = isCapture
+        ? { boxShadow: 'inset 0 0 0 4px rgba(0,0,0,0.25)', borderRadius: '2px' }
+        : { background: 'radial-gradient(circle, rgba(0,0,0,0.18) 30%, transparent 32%)', borderRadius: '50%' }
+    }
+  }
+
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 14, color: '#aaa' }}>
-          {thinking ? '🤔 Thinking...' : game.turn() === 'w' ? 'Your turn (White)' : "Black's turn"}
+    <div>
+      <div className="status-bar">
+        <span className="turn-indicator">
+          <span className={`turn-dot ${game.turn() === 'w' ? 'white' : 'black'} ${thinking ? 'thinking' : ''}`} />
+          {thinking ? 'Thinking...' : game.turn() === 'w' ? 'Your turn' : "Opponent's turn"}
         </span>
-        <span
-          style={{
-            fontSize: 12,
-            padding: '4px 10px',
-            borderRadius: 4,
-            background: '#2a2a3e',
-            textTransform: 'capitalize',
-          }}
-        >
-          {difficulty}
-        </span>
+        <span className="difficulty-badge">{DIFFICULTY_INFO[difficulty].label}</span>
       </div>
 
-      <Chessboard
-        position={game.fen()}
-        onPieceDrop={onPieceDrop}
-        boardWidth={Math.min(window.innerWidth - 48, 560)}
-        arePiecesDraggable={gameStatus === 'playing' && !thinking && game.turn() === 'w'}
-        customDarkSquareStyle={{ backgroundColor: '#7c5cbf' }}
-        customLightSquareStyle={{ backgroundColor: '#e8dff5' }}
-      />
-
-      {game.inCheck() && !game.isGameOver() && (
-        <p style={{ marginTop: 8, color: '#ff6b6b', fontWeight: 600 }}>Check!</p>
-      )}
-
-      {/* Game over modal overlay */}
-      {gameStatus === 'game_over' && result && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: 20,
-            borderRadius: 12,
-            background: '#2a2a3e',
-            border: '1px solid #444',
-          }}
-        >
-          <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>{result}</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button
-              onClick={() => startGame('ui-start')}
-              style={{
-                padding: '10px 24px',
-                borderRadius: 8,
-                border: 'none',
-                background: '#7c5cbf',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: 14,
-              }}
-            >
-              New Game
-            </button>
-            <button
-              onClick={() => {
-                sendToParent({
-                  type: 'COMPLETION',
-                  pluginId: 'chess',
-                  payload: { result: 'closed', reason: 'game_over' },
-                })
-                setGameStatus('waiting')
-              }}
-              style={{
-                padding: '10px 24px',
-                borderRadius: 8,
-                border: '1px solid #555',
-                background: 'transparent',
-                color: '#ccc',
-                cursor: 'pointer',
-                fontSize: 14,
-              }}
-            >
-              Close
-            </button>
-          </div>
+      <div className="game-container">
+        <div className="board-column">
+          <Chessboard
+            position={game.fen()}
+            onPieceDrop={onPieceDrop}
+            onSquareClick={onSquareClick}
+            boardWidth={boardSize}
+            arePiecesDraggable={gameStatus === 'playing' && !thinking && game.turn() === 'w'}
+            customDarkSquareStyle={{ backgroundColor: '#b58863' }}
+            customLightSquareStyle={{ backgroundColor: '#f0d9b5' }}
+            customSquareStyles={customSquareStyles}
+          />
+          {game.inCheck() && !game.isGameOver() && <div className="check-banner">Check!</div>}
         </div>
-      )}
+
+        <div className="sidebar">
+          <div className="move-history" ref={moveListRef}>
+            <h4>Moves</h4>
+            <div className="move-list">
+              {movePairs.length === 0 && (
+                <span style={{ fontSize: 12, color: '#555' }}>No moves yet</span>
+              )}
+              {movePairs.map((pair) => (
+                <div className="move-row" key={pair.num}>
+                  <span className="move-num">{pair.num}.</span>
+                  <span className="move-white">{pair.white}</span>
+                  <span className="move-black">{pair.black || ''}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {gameStatus === 'game_over' && result && (
+            <div className="game-over-panel">
+              <p className="result-text">{result}</p>
+              <div className="game-over-actions">
+                <button className="btn-primary" onClick={() => startGame('ui-start')}>
+                  New Game
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    sendToParent({
+                      type: 'COMPLETION',
+                      pluginId: 'chess',
+                      payload: { result: 'closed', reason: 'game_over' },
+                    })
+                    setGameStatus('waiting')
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

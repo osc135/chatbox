@@ -506,7 +506,11 @@ const _Message: FC<Props> = (props) => {
                 ) : item.type === 'tool-call' ? (
                   <ToolCallPartUI key={item.toolCallId} part={item as MessageToolCallPart} />
                 ) : item.type === 'app' ? (
-                  <AppEmbed key={`app-${(item as MessageAppPart).appId}`} part={item as MessageAppPart} />
+                  <AppEmbed
+                    key={`app-${(item as MessageAppPart).appId}`}
+                    part={item as MessageAppPart}
+                    sessionId={sessionId}
+                  />
                 ) : null
               )}
             </div>

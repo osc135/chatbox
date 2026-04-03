@@ -355,6 +355,19 @@ export default abstract class AbstractAISDKModel implements ModelInterface {
         }
       }
 
+      // If tool result requests a tool invocation on an embedded app, dispatch it
+      // so the active AppEmbed can forward it to its iframe.
+      if (result && typeof result === 'object' && 'action' in result && (result as any).action === 'tool_invoke') {
+        const invokeResult = result as unknown as { appId: string; tool: string; params: Record<string, unknown> }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('app:toolInvoke', {
+              detail: { appId: invokeResult.appId, tool: invokeResult.tool, params: invokeResult.params ?? {} },
+            })
+          )
+        }
+      }
+
       options.onResultChange?.({ contentParts })
     }
   }

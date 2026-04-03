@@ -66,6 +66,9 @@ async function initializeApp() {
     Sentry.captureException(e as Error)
   }
 
+  // Seed default ChatBridge sessions (chess, etc.)
+  import('./setup/seed_chess_session').then((m) => m.seedChessSession())
+
   // 最后执行 storage 清理，清理不 block 进入UI
   import('./setup/storage_clear')
 
