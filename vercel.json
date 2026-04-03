@@ -1,5 +1,7 @@
 {
+  "buildCommand": "bash build-vercel.sh",
   "outputDirectory": "dist",
+  "installCommand": "echo skip",
   "rewrites": [
     { "source": "/chess/(.*)", "destination": "/chess/$1" },
     { "source": "/weather/(.*)", "destination": "/weather/$1" },
