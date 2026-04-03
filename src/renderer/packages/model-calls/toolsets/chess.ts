@@ -1,5 +1,6 @@
 import { tool } from 'ai'
 import z from 'zod'
+import { getChessState } from '@/packages/chess-state-store'
 
 // Dev: localhost:3001. Prod (Railway): VITE_CHESS_APP_URL=/chess (same-origin subpath).
 const CHESS_APP_URL = (import.meta.env.VITE_CHESS_APP_URL as string | undefined) || 'http://localhost:3001'
@@ -42,12 +43,9 @@ export const chessTools = {
       'Get the current state of the chess board. Use this when the user asks about the current position, wants advice, or asks "what should I do?".',
     inputSchema: z.object({}),
     execute: async () => {
-      return {
-        action: 'tool_invoke',
-        appId: 'chess',
-        tool: 'get_board_state',
-        params: {},
-      }
+      const state = getChessState()
+      if (!state) return { error: 'No active chess game. Start a game first.' }
+      return state
     },
   }),
 

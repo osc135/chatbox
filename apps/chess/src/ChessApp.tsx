@@ -143,9 +143,30 @@ export default function ChessApp() {
   const [moveHistory, setMoveHistory] = useState<string[]>([])
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [legalMoveSquares, setLegalMoveSquares] = useState<Square[]>([])
+  const [showMoves, setShowMoves] = useState(true)
+  const [boardSize, setBoardSize] = useState(400)
   const moveListRef = useRef<HTMLDivElement>(null)
+  const roRef = useRef<ResizeObserver | null>(null)
 
-  const boardSize = Math.min(window.innerWidth - 200, 420)
+  // Callback ref: fires whenever .board-wrap mounts/unmounts.
+  // Fixes the bug where the plain useRef approach set up the observer once on
+  // initial render — but at that point the component is in "waiting" state and
+  // .board-wrap doesn't exist yet, so boardContainerRef.current was null and
+  // the observer was never attached.
+  const boardContainerRef = useCallback((el: HTMLDivElement | null) => {
+    if (roRef.current) {
+      roRef.current.disconnect()
+      roRef.current = null
+    }
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      const { width, height } = entry.contentRect
+      setBoardSize(Math.max(100, Math.min(width, height) - 12))
+    })
+    ro.observe(el)
+    roRef.current = ro
+  }, [])
 
   // Sound: play on each new move
   useEffect(() => {
@@ -457,6 +478,7 @@ export default function ChessApp() {
     const difficulties: Difficulty[] = ['super_dumb', 'easy', 'medium', 'hard']
     return (
       <div className="picker">
+        <p className="picker-eyebrow">ChatBridge</p>
         <h2>Play Chess</h2>
         <p className="subtitle">Choose your difficulty</p>
         <div className="difficulty-cards">
@@ -501,17 +523,22 @@ export default function ChessApp() {
   }
 
   return (
-    <div>
+    <div className="chess-app">
       <div className="status-bar">
         <span className="turn-indicator">
           <span className={`turn-dot ${game.turn() === 'w' ? 'white' : 'black'} ${thinking ? 'thinking' : ''}`} />
           {thinking ? 'Thinking...' : game.turn() === 'w' ? 'Your turn' : "Opponent's turn"}
         </span>
-        <span className="difficulty-badge">{DIFFICULTY_INFO[difficulty].label}</span>
+        <div className="status-right">
+          <button className="moves-toggle" onClick={() => setShowMoves(v => !v)}>
+            Moves {showMoves ? '▲' : '▼'}
+          </button>
+          <span className="difficulty-badge">{DIFFICULTY_INFO[difficulty].label}</span>
+        </div>
       </div>
 
-      <div className="game-container">
-        <div className="board-column">
+      <div className="game-area">
+        <div className="board-wrap" ref={boardContainerRef}>
           <Chessboard
             position={game.fen()}
             onPieceDrop={onPieceDrop}
@@ -523,40 +550,15 @@ export default function ChessApp() {
             customSquareStyles={customSquareStyles}
           />
           {game.inCheck() && !game.isGameOver() && <div className="check-banner">Check!</div>}
-        </div>
-
-        <div className="sidebar">
-          <div className="move-history" ref={moveListRef}>
-            <h4>Moves</h4>
-            <div className="move-list">
-              {movePairs.length === 0 && (
-                <span style={{ fontSize: 12, color: '#555' }}>No moves yet</span>
-              )}
-              {movePairs.map((pair) => (
-                <div className="move-row" key={pair.num}>
-                  <span className="move-num">{pair.num}.</span>
-                  <span className="move-white">{pair.white}</span>
-                  <span className="move-black">{pair.black || ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {gameStatus === 'game_over' && result && (
             <div className="game-over-panel">
               <p className="result-text">{result}</p>
               <div className="game-over-actions">
-                <button className="btn-primary" onClick={() => startGame('ui-start')}>
-                  New Game
-                </button>
+                <button className="btn-primary" onClick={() => startGame('ui-start')}>New Game</button>
                 <button
                   className="btn-secondary"
                   onClick={() => {
-                    sendToParent({
-                      type: 'COMPLETION',
-                      pluginId: 'chess',
-                      payload: { result: 'closed', reason: 'game_over' },
-                    })
+                    sendToParent({ type: 'COMPLETION', pluginId: 'chess', payload: { result: 'closed', reason: 'game_over' } })
                     setGameStatus('waiting')
                   }}
                 >
@@ -566,6 +568,35 @@ export default function ChessApp() {
             </div>
           )}
         </div>
+
+        {showMoves && (
+          <div className="moves-panel">
+            <div className="moves-panel-header">
+              <span className="moves-col-num" />
+              <span className="moves-col-label">White</span>
+              <span className="moves-col-label">Black</span>
+            </div>
+            <div className="moves-panel-list" ref={moveListRef}>
+              <div className="move-list">
+                {movePairs.length === 0 && (
+                  <span className="no-moves">No moves yet</span>
+                )}
+                {movePairs.map((pair, i) => {
+                  const isLastPair = i === movePairs.length - 1
+                  const whiteActive = isLastPair && moveHistory.length % 2 === 1
+                  const blackActive = isLastPair && moveHistory.length % 2 === 0
+                  return (
+                    <div className="move-row" key={pair.num}>
+                      <span className="move-num">{pair.num}.</span>
+                      <span className={`move-cell${whiteActive ? ' move-cell--active' : ''}`}>{pair.white}</span>
+                      <span className={`move-cell${blackActive ? ' move-cell--active' : ''}`}>{pair.black || ''}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

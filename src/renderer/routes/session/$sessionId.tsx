@@ -189,7 +189,7 @@ function RouteComponent() {
   return currentSession ? (
     <div className="flex flex-row h-full overflow-hidden">
       {/* Chat column */}
-      <div className="flex flex-col h-full min-w-0" style={{ flex: activeApp ? '0 0 50%' : '1 1 100%', transition: 'flex-basis 0.2s ease' }}>
+      <div className="flex flex-col h-full min-w-0" style={{ flex: activeApp ? '0 0 40%' : '1 1 100%', transition: 'flex-basis 0.2s ease' }}>
         <Header session={currentSession} />
         <MessageList ref={messageListRef} key={`message-list${currentSessionId}`} currentSession={currentSession} />
         <ErrorBoundary name="session-inputbox">
@@ -215,7 +215,7 @@ function RouteComponent() {
         <div
           className="flex flex-col h-full"
           style={{
-            flex: '0 0 50%',
+            flex: '0 0 60%',
             borderLeft: '1px solid #2a2a2a',
             background: '#141414',
           }}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { MessageAppPart } from '@shared/types'
 import { fetchChessOpponentMove } from '@/packages/chess-opponent-move'
+import { setChessState } from '@/packages/chess-state-store'
 
 type ChessOpponentMoveResultMsg = {
   type: 'OPPONENT_MOVE_RESULT'
@@ -51,8 +52,10 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
       if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
 
       if (data.type === 'STATE_UPDATE') {
-        if (onStateUpdate && data.payload && typeof data.payload === 'object') {
-          onStateUpdate(data.payload as Record<string, unknown>)
+        if (data.payload && typeof data.payload === 'object') {
+          const payload = data.payload as Record<string, unknown>
+          if (part.appId === 'chess') setChessState(payload)
+          if (onStateUpdate) onStateUpdate(payload)
         }
       }
 
