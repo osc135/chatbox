@@ -59,6 +59,7 @@ function dvhToVh(): Plugin {
 }
 
 export default defineConfig({
+  root: path.resolve(__dirname, 'src/renderer'),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src/renderer'),
@@ -101,7 +102,6 @@ export default defineConfig({
     sourcemap: 'hidden',
     minify: 'esbuild',
     rollupOptions: {
-      input: path.resolve(__dirname, 'src/renderer/index.html'),
       output: {
         entryFileNames: 'js/[name].[hash].js',
         chunkFileNames: 'js/[name].[hash].js',
