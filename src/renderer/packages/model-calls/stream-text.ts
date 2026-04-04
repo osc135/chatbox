@@ -158,7 +158,18 @@ export async function streamText(
   const webNotSupported = webBrowsing && !model.isSupportToolUse('web-browsing')
 
   // 1. inject system prompt for tool use
-  let toolSetInstructions = ''
+  // Always include ChatBridge app tool guidance so every session can invoke mini-apps
+  let toolSetInstructions = `
+You have access to interactive mini-apps that render inline in the chat window. Use them proactively:
+- Chess: call chess__start_game when the user wants to play chess
+- Weather: call weather__show_weather when the user asks about weather, temperature, or forecasts for any location
+- Spotify: call spotify__open when the user wants to create a playlist, find music, or do anything with Spotify
+
+Rules:
+- Invoke the tool immediately — do not ask "would you like me to open X?" just do it
+- After the app renders, continue the conversation naturally around it
+- Never tell the user to "click a link" or "visit a URL" — the app appears right in the chat
+`
   // 预加载知识库工具集（异步获取文件列表）
   let kbToolSet = null
   if (knowledgeBase) {
