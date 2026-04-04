@@ -35,6 +35,7 @@ import {
 } from './tools'
 import { chessTools } from './toolsets/chess'
 import { weatherTools } from './toolsets/weather'
+import { spotifyTools } from './toolsets/spotify'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -299,6 +300,7 @@ export async function streamText(
       ...mcpController.getAvailableTools(),
       ...chessTools,
       ...weatherTools,
+      ...spotifyTools,
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool

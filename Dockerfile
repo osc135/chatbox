@@ -16,7 +16,16 @@ COPY apps/weather/ ./
 # Serve the weather app at /weather/ in production
 RUN VITE_BASE=/weather/ npm run build
 
-# ── Stage 3: Main Chatbox web build ──────────────────────────────────────────
+# ── Stage 3: Spotify app ──────────────────────────────────────────────────────
+FROM node:20-slim AS spotify-builder
+WORKDIR /build
+COPY apps/spotify/package.json apps/spotify/package-lock.json ./
+RUN npm ci
+COPY apps/spotify/ ./
+# Serve the spotify app at /spotify/ in production
+RUN VITE_BASE=/spotify/ npm run build
+
+# ── Stage 4: Main Chatbox web build ──────────────────────────────────────────
 FROM node:20-slim AS main-builder
 WORKDIR /build
 
@@ -44,17 +53,19 @@ COPY . .
 # Inline the app subpaths so the LLM toolsets point to the right iframes
 ENV VITE_CHESS_APP_URL=/chess/
 ENV VITE_WEATHER_APP_URL=/weather/
+ENV VITE_SPOTIFY_APP_URL=/spotify/
 
 # Raise Node heap limit — the full Vite build (MUI + Mantine + Mermaid + AI SDKs) OOMs at default 2GB
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm exec vite build --config vite.web.config.ts
 
-# ── Stage 4: nginx runtime ────────────────────────────────────────────────────
+# ── Stage 5: nginx runtime ────────────────────────────────────────────────────
 FROM nginx:alpine
-COPY --from=chess-builder   /build/dist                       /usr/share/nginx/html/chess
-COPY --from=weather-builder /build/dist                       /usr/share/nginx/html/weather
-COPY --from=main-builder    /build/release/app/dist/renderer  /usr/share/nginx/html
+COPY --from=chess-builder    /build/dist                       /usr/share/nginx/html/chess
+COPY --from=weather-builder  /build/dist                       /usr/share/nginx/html/weather
+COPY --from=spotify-builder  /build/dist                       /usr/share/nginx/html/spotify
+COPY --from=main-builder     /build/release/app/dist/renderer  /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 EXPOSE 8080
 CMD sh -c "envsubst '\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
