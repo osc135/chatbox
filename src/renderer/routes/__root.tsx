@@ -44,6 +44,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useMemo, useRef } from 'react'
+import { tutorAuthStore } from '@/stores/tutorAuthStore'
 import SettingsModal, { navigateToSettings } from '@/modals/Settings'
 import { prefetchModelRegistry } from '@/packages/model-registry'
 import { getOS } from '@/packages/navigator'
@@ -132,6 +133,15 @@ function BackgroundImageOverlay() {
 function Root() {
   const { isExceeded, versionLoaded } = useVersion()
   const location = useLocation()
+
+  // Auth gate — redirect to /login if no tutor session
+  useEffect(() => {
+    if (location.pathname === '/login') return
+    const { token } = tutorAuthStore.getState()
+    if (!token) {
+      router.navigate({ to: '/login', replace: true })
+    }
+  }, [location.pathname])
   const spellCheck = useSettingsStore((state) => state.spellCheck)
   const language = useLanguage()
   const initialized = useRef(false)

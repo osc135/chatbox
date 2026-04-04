@@ -134,6 +134,7 @@ export default defineConfig({
     'process.env.USE_LOCAL_API': JSON.stringify(process.env.USE_LOCAL_API || ''),
     'process.env.USE_BETA_API': JSON.stringify(process.env.USE_BETA_API || ''),
     'process.env.GPT_API_KEY': JSON.stringify(process.env.GPT_API_KEY || ''),
+    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://chatbridge-backend-production.up.railway.app'),
   },
   optimizeDeps: {
     include: ['mermaid'],

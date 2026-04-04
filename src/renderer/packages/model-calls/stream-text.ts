@@ -7,6 +7,7 @@ import { t } from 'i18next'
 import { uniqueId } from 'lodash'
 import { createModelDependencies } from '@/adapters'
 import * as settingActions from '@/stores/settingActions'
+import { tutorAuthStore } from '@/stores/tutorAuthStore'
 import { settingsStore } from '@/stores/settingsStore'
 import type {
   ModelInterface,
@@ -158,8 +159,14 @@ export async function streamText(
   const webNotSupported = webBrowsing && !model.isSupportToolUse('web-browsing')
 
   // 1. inject system prompt for tool use
+  // Include student context if a student is logged in
+  const tutorUser = tutorAuthStore.getState().user
+  const studentContext = tutorUser?.role === 'student' && tutorUser.grade
+    ? `\nThe student you are tutoring is in grade ${tutorUser.grade === 'K' ? 'Kindergarten' : tutorUser.grade}. Tailor all explanations, vocabulary, and activities to be age-appropriate for that grade level.\n`
+    : ''
+
   // Always include ChatBridge app tool guidance so every session can invoke mini-apps
-  let toolSetInstructions = `
+  let toolSetInstructions = `${studentContext}
 You have access to interactive mini-apps that render inline in the chat window. Use them proactively:
 - Chess: call chess__start_game when the user wants to play chess
 - Weather: call weather__show_weather when the user asks about weather, temperature, or forecasts for any location
