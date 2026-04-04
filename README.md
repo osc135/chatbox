@@ -1,350 +1,209 @@
-<p align="right">
-  <a href="README.md">English</a> |
-  <a href="./doc/README-CN.md">简体中文</a>
-</p>
+# ChatBridge — TutorMeAI Plugin Platform
 
-This is the repository for the Chatbox Community Edition, open-sourced under the GPLv3 license.
+A production-grade AI chat platform with embedded third-party app integration, built for K-12 education. Forked from [Chatbox Community Edition](https://github.com/chatboxai/chatbox) (GPLv3).
 
-[Chatbox is going open-source Again!](https://github.com/chatboxai/chatbox/issues/2266)
-
-We regularly sync code from the pro repo to this repo, and vice versa.
-
-### Download for Desktop
-
-<table style="width: 100%">
-  <tr>
-    <td width="25%" align="center">
-      <b>Windows</b>
-    </td>
-    <td width="25%" align="center" colspan="2">
-      <b>MacOS</b>
-    </td>
-    <td width="25%" align="center">
-      <b>Linux</b>
-    </td>
-  </tr>
-  <tr style="text-align: center">
-    <td align="center" valign="middle">
-      <a href='https://chatboxai.app/?c=download-windows'>
-        <img src='./doc/statics/windows.png' style="height:24px; width: 24px" />
-        <br />
-        <b>Setup.exe</b>
-      </a>
-    </td>
-    <td align="center" valign="middle">
-      <a href='https://chatboxai.app/?c=download-mac-intel'>
-        <img src='./doc/statics/mac.png' style="height:24px; width: 24px" />
-        <br />
-        <b>Intel</b>
-      </a>
-    </td>
-    <td align="center" valign="middle">
-      <a href='https://chatboxai.app/?c=download-mac-aarch'>
-        <img src='./doc/statics/mac.png' style="height:24px; width: 24px" />
-        <br />
-        <b style="white-space: nowrap;">Apple Silicon</b>
-      </a>
-    </td>
-    <td align="center" valign="middle">
-      <a href='https://chatboxai.app/?c=download-linux'>
-        <img src='./doc/statics/linux.png' style="height:24px; width: 24px" />
-        <br />
-        <b>AppImage</b>
-      </a>
-    </td>
-  </tr>
-</table>
-
-### Download for iOS/Android
-
-<a href='https://apps.apple.com/app/chatbox-ai/id6471368056' style='margin-right: 4px'>
-<img src='./doc/statics/app_store.webp' style="height:38px;" />
-</a>
-<a href='https://play.google.com/store/apps/details?id=xyz.chatboxapp.chatbox' style='margin-right: 4px'>
-<img src='./doc/statics/google_play.png' style="height:38px;" />
-</a>
-<a href='https://chatboxai.app/install?download=android_apk' style='margin-right: 4px; display: inline-flex; justify-content: center'>
-<img src='./doc/statics/android.png' style="height:28px; display: inline-block" />
-.APK
-</a>
-
-For more information: [chatboxai.app](https://chatboxai.app/)
-
-## Quick Start
-
-### For End Users
-1. Download the appropriate installer for your platform from the [releases page](https://github.com/chatboxai/chatbox/releases)
-2. Install and launch Chatbox
-3. Configure your AI provider (OpenAI, Claude, etc.) in settings
-4. Start chatting!
-
-### System Requirements
-
-| Platform | Minimum Version | Architecture |
-|----------|----------------|--------------|
-| Windows | Windows 10 | x64 |
-| macOS | macOS 11 (Big Sur) | Intel/Apple Silicon |
-| Linux | Ubuntu 20.04+ / AppImage supported distros | x64 |
+**Live demo:** deploy via Docker (see below)
 
 ---
-<div align="center" markdown="1">
-  <a href="https://go.warp.dev/chatbox">
-    <img alt="Warp sponsorship" width="400" src="https://raw.githubusercontent.com/warpdotdev/brand-assets/refs/heads/main/Github/Sponsor/Warp-Github-LG-02.png">
-  </a>
 
-### [Warp, built for coding with multiple AI agents.](https://go.warp.dev/chatbox)
-[Available for MacOS, Linux, & Windows](https://go.warp.dev/chatbox)<br>
-</div>
+## What This Is
 
-<hr>
+ChatBridge extends Chatbox into a mini-app platform. The AI assistant can launch interactive educational tools directly inside the chat window. Apps communicate bidirectionally with the chatbot — the LLM knows what's happening inside an app and can respond to it.
 
-<h1 align="center">
-<img src='./doc/statics/icon.png' width='30'>
-<span>
-    Chatbox
-    <span style="font-size:8px; font-weight: normal;">(Community Edition)</span>
-</span>
-</h1>
-<p align="center">
-    <em>Your Ultimate AI Copilot on the Desktop. <br />Chatbox is a desktop client for ChatGPT, Claude and other LLMs, available on Windows, Mac, Linux</em>
-</p>
+**Use case:** A student says "I want to practice adding" → the chatbot opens the counting app at the right level → student works through problems → the chatbot can see the score, encourage them, or switch levels.
 
-<p align="center">
-<a href="https://github.com/chatboxai/chatbox/releases" target="_blank">
-<img alt="macOS" src="https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white" />
-</a>
-<a href="https://github.com/chatboxai/chatbox/releases" target="_blank">
-<img alt="Windows" src="https://img.shields.io/badge/-Windows-blue?style=flat-square&logo=windows&logoColor=white" />
-</a>
-<a href="https://github.com/chatboxai/chatbox/releases" target="_blank">
-<img alt="Linux" src="https://img.shields.io/badge/-Linux-yellow?style=flat-square&logo=linux&logoColor=white" />
-</a>
-<a href="https://github.com/chatboxai/chatbox/releases" target="_blank">
-<img alt="Downloads" src="https://img.shields.io/github/downloads/chatboxai/chatbox/total.svg?style=flat" />
-</a>
-<a href="#features">
-<img alt="Privacy" src="https://img.shields.io/badge/-Local%20First-green?style=flat-square&logo=shield&logoColor=white" />
-</a>
-</p>
+---
 
-<a href="https://www.producthunt.com/posts/chatbox?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-chatbox" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=429547&theme=light" alt="Chatbox - Better&#0032;UI&#0032;&#0038;&#0032;Desktop&#0032;App&#0032;for&#0032;ChatGPT&#0044;&#0032;Claude&#0032;and&#0032;other&#0032;LLMs&#0046; | Product Hunt" style="width: 150px; height: 30px;" width="100" height="40" /></a>
+## Apps
 
-<a href="./doc/statics/snapshot_light.png">
-<img src="./doc/statics/snapshot_light.png" width="400"/>
-</a>
-<a href="./doc/statics/snapshot_dark.png">
-<img src="./doc/statics/snapshot_dark.png" width="400"/>
-</a>
+### ♟ Chess (iframe)
+Full chess board with legal move validation. The LLM plays as opponent, analyzing board state on request.
 
-<!-- <table>
-<tr>
-<td>
-<img src="./dec/../doc/demo_mobile_1.png" alt="App Screenshot" style="box-shadow: 2px 2px 10px rgba(0,0,0,0.1); border: 1px solid #ddd; border-radius: 8px; height: 300px" />
-</td>
-<td>
-<img src="./dec/../doc/demo_mobile_2.png" alt="App Screenshot" style="box-shadow: 2px 2px 10px rgba(0,0,0,0.1); border: 1px solid #ddd; border-radius: 8px; height: 300px" />
-</td>
-</tr>
-</table> -->
+| Tool | What it does |
+|------|-------------|
+| `chess__start_game` | Launch board, set player color |
+| `chess__make_move` | Submit a move (UCI notation) |
+| `chess__get_board_state` | Get FEN + move history for LLM analysis |
 
-## Features
+### 🌤 Weather (iframe)
+Current conditions + 5-day forecast for any location. Pulls from OpenWeatherMap API.
 
-### 🤖 AI Model Support
--   **Support for Multiple LLM Providers**  
-    :gear: Seamlessly integrate with a variety of cutting-edge language models:
-    -   OpenAI (ChatGPT)
-    -   Azure OpenAI
-    -   Claude
-    -   Google Gemini Pro
-    -   Ollama (enable access to local models like llama2, Mistral, Mixtral, codellama, vicuna, yi, and solar)
-    -   ChatGLM-6B
+| Tool | What it does |
+|------|-------------|
+| `weather__show` | Open weather panel for a city |
 
--   **Image Generation with Dall-E-3**  
-    :art: Create the images of your imagination with Dall-E-3.
+### 🔢 Counting (inline React component)
+K-2 math practice app (ages 5–8). Three leveled activities with audio feedback and celebration animations. Does **not** use an iframe — rendered as a direct React component for zero-latency and tighter integration.
 
--   **Enhanced Prompting**  
-    :speech_balloon: Advanced prompting features to refine and focus your queries for better responses.
+| Tool | What it does |
+|------|-------------|
+| `counting__open` | Launch the app at a specific level |
+| `counting__set_level` | Switch levels mid-session |
 
-### 🖥️ User Experience
--   **Local Data Storage**  
-    :floppy_disk: Your data remains on your device, ensuring it never gets lost and maintains your privacy.
+#### Counting App Levels
 
--   **No-Deployment Installation Packages**  
-    :package: Get started quickly with downloadable installation packages. No complex setup necessary!
+**Level 1 — Count Objects**
+- 1–10 emoji objects displayed in a ten-frame grid (rows of 5 — standard K-2 subitizing layout)
+- "How many [emoji] do you see?"
+- Student picks from 4 large number buttons (correct + 3 nearby distractors)
+- Wrong answer: shake animation + "Oops! Try again!" — 800ms lockout then retry
 
--   **Ergonomic UI & Dark Theme**  
-    :new_moon: A user-friendly interface with a night mode option for reduced eye strain during extended use.
+**Level 2 — Add (Count On)**
+- Number line 0–10
+- Frog 🐸 starts at a position (0–5); student presses HOP to move it right
+- After all hops: "Where did 🐸 land?" — student picks from 4 choices before celebration
 
--   **Keyboard Shortcuts**  
-    :keyboard: Stay productive with shortcuts that speed up your workflow.
+**Level 3 — Subtract (Count Back)**
+- Same number line; frog starts at 5–10 and hops left
+- Same answer-confirmation step before celebration
 
--   **Streaming Reply**  
-    :arrow_forward: Provide rapid responses to your interactions with immediate, progressive replies.
+#### Audio
+All sounds use Web Audio API — no external files.
 
-### 📄 Content & Formatting
--   **Markdown, Latex & Code Highlighting**  
-    :scroll: Generate messages with the full power of Markdown and Latex formatting, coupled with syntax highlighting for various programming languages, enhancing readability and presentation.
+| Event | Sound |
+|-------|-------|
+| Correct answer | Ascending C–E–G–C arpeggio (triangle wave) |
+| Wrong answer | Soft descending slide (340 Hz → 210 Hz) |
+| Frog hop | Two-syllable "rib-bit" (sawtooth with amplitude gap) |
 
--   **Prompt Library & Message Quoting**  
-    :books: Save and organize prompts for reuse, and quote messages for context in discussions.
+---
 
-### 👥 Collaboration & Sharing
--   **Team Collaboration**  
-    :busts_in_silhouette: Collaborate with ease and share OpenAI API resources among your team. [Learn More](./team-sharing/README.md)
+## Architecture
 
-### 🌐 Platform Availability
--   **Cross-Platform Desktop**  
-    :computer: Chatbox is ready for Windows, Mac, and Linux users.
+### Plugin Communication
 
--   **Web Version**  
-    :globe_with_meridians: Use the web application on any device with a browser, anywhere.
+**iframe apps (Chess, Weather)**
+Apps run as separate Vite builds served at `/chess/` and `/weather/`. Communication uses `window.postMessage`:
 
--   **Mobile Apps**  
-    :phone: Native iOS and Android applications for on-the-go access.
+```
+Parent → App:   { type: 'TOOL_INVOKE', pluginId, invocationId, tool, params }
+App → Parent:   { type: 'STATE_UPDATE', pluginId, invocationId, payload }
+                { type: 'COMPLETION',   pluginId, invocationId, result }
+                { type: 'ERROR',        pluginId, invocationId, error }
+```
 
-### 🌍 Localization
--   **Multilingual Support**  
-    :earth_americas: Catering to a global audience by offering support in multiple languages:
-    -   English
-    -   简体中文 (Simplified Chinese)
-    -   繁體中文 (Traditional Chinese)
-    -   日本語 (Japanese)
-    -   한국어 (Korean)
-    -   Français (French)
-    -   Deutsch (German)
-    -   Русский (Russian)
-    -   Español (Spanish)
+**Inline apps (Counting)**
+Rendered as a React component inside `AppEmbed`. No postMessage hop:
+- State updates via `onStateUpdate` prop callback
+- Tool invocations via `window.dispatchEvent(new CustomEvent('app:toolInvoke', { detail }))`
 
-### ✨ More Features
--   **And More...**  
-    :sparkles: Constantly enhancing the experience with new features!
+### Tool → Panel Lifecycle
 
-## FAQ
+```
+LLM returns { action: 'render_app', appId, appUrl }
+  → abstract-ai-sdk creates MessageAppPart
+    → $sessionId.tsx detects new app part, opens side panel (60% width)
+      → AppEmbed renders iframe OR inline component
+        → app sends STATE_UPDATE on every significant change
+          → LLM context is updated with app state
+```
 
--   [Frequently Asked Questions](./doc/FAQ.md)
+### Side Panel Layout
 
-## Why I made Chatbox?
+```
+┌─────────────────────────────────────┐
+│  Chat (40%)   │  App Panel (60%)    │
+│               │  ┌───────────────┐  │
+│  messages...  │  │  [app here]   │  │
+│               │  └───────────────┘  │
+│  [input box]  │                     │
+└─────────────────────────────────────┘
+```
 
-I developed Chatbox initially because I was debugging some prompts and found myself in need of a simple and easy-to-use prompt and API debugging tool. I thought there might be more people who needed such a tool, so I open-sourced it.
+### Key Files
 
-At first, I didn't know that it would be so popular. I listened to the feedback from the open-source community and continued to develop and improve it. Now, it has become a very useful AI desktop application. There are many users who love Chatbox, and they not only use it for developing and debugging prompts, but also for daily chatting, and even to do some more interesting things like using well-designed prompts to make AI play various professional roles to assist them in everyday work...
+```
+src/renderer/
+├── components/
+│   ├── apps/
+│   │   ├── CountingApp.tsx         # Inline counting mini-app
+│   │   └── counting.css            # Scoped styles (all .cnt-* prefixed)
+│   └── chat/
+│       └── AppEmbed.tsx            # Renders iframe apps OR inline components
+├── packages/model-calls/
+│   ├── stream-text.ts              # Tool registry + system prompt
+│   └── toolsets/
+│       ├── chess.ts                # Chess tool definitions
+│       ├── weather.ts              # Weather tool definitions
+│       └── counting.ts             # Counting tool definitions
+├── routes/session/$sessionId.tsx   # Side panel layout + app panel
+└── setup/
+    └── seed_counting_session.ts    # Seeds "Counting Fun" demo session
 
-## How to Contribute
+apps/
+├── chess/      # Standalone Vite app (served at /chess/)
+└── weather/    # Standalone Vite app (served at /weather/)
+```
 
-We welcome contributions from the community! Here's how you can help make Chatbox better:
-
-### 🐛 Reporting Issues
-- Use [GitHub Issues](https://github.com/chatboxai/chatbox/issues) to report bugs or request features
-- Before creating a new issue, please search existing issues to avoid duplicates
-- Provide detailed information including steps to reproduce, expected behavior, and screenshots if applicable
-
-### 🔧 Pull Requests
-1. Fork the repository and create your branch from `main`
-2. Make your changes and ensure the code follows our coding standards
-3. Test your changes thoroughly
-4. Update documentation if needed
-5. Submit a pull request with a clear description of the changes
-
-### 🌍 Translations
-Help make Chatbox accessible to more people by contributing translations:
-- Translation files are located in the `src/locales` directory
-- Follow the existing translation format
-- Submit a PR with your translation improvements
-
-### 📖 Documentation
-- Improve README, API documentation, or user guides
-- Fix typos or clarify unclear instructions
-- Add examples and tutorials
-
-### 🌟 Other Ways to Contribute
-- Star the repository to show your support
-- Share Chatbox with others
-- Answer questions in [GitHub Discussions](https://github.com/chatboxai/chatbox/discussions)
-- Provide feedback and suggestions
-
-**Thank you for contributing! 🙏**
+---
 
 ## Development
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+- Node.js v20–v22
+- pnpm v10+ (`corepack enable && corepack prepare pnpm@latest --activate`)
 
-- **Node.js** (v20.x – v22.x) - [Download here](https://nodejs.org/)
-- **pnpm** (v10.x or later) - Install via `corepack enable && corepack prepare pnpm@latest --activate`
-- **Git** - [Download here](https://git-scm.com/)
+### Run locally (web mode)
 
-### Quick Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/chatboxai/chatbox.git
-   cd chatbox
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-3. **Start development server**
-   ```bash
-   pnpm run dev
-   ```
-   The application will start in development mode with hot-reload enabled.
-
-### Build Commands
-
-| Command | Description |
-|---------|-------------|
-| `pnpm run dev` | Start development server with hot-reload |
-| `pnpm run package` | Build and package for current platform |
-| `pnpm run package:all` | Build and package for all platforms |
-| `pnpm run build` | Build for production without packaging |
-| `pnpm run lint` | Run Biome to check code quality |
-| `pnpm run test` | Run Vitest test suite |
-
-### Project Structure
-
-```
-chatbox/
-├── src/
-│   ├── main/               # Electron main process
-│   ├── renderer/           # React renderer (UI)
-│   ├── preload/            # Electron preload scripts
-│   └── shared/             # Shared utilities
-├── doc/                    # Documentation and assets
-├── resources/              # App resources and icons
-├── team-sharing/           # Team collaboration features
-└── package.json            # Project configuration
+```bash
+pnpm install
+pnpm run dev:web
 ```
 
-### Development Tips
+App runs at `http://localhost:1212`. The chess and weather sidecar apps need to be running separately if you're developing them:
 
-- Use `pnpm run lint` before committing to ensure code quality
-- Follow the existing code style and patterns
-- Test your changes on both light and dark themes
-- Ensure cross-platform compatibility when making UI changes
+```bash
+# Terminal 2
+cd apps/chess && npm install && npm run dev   # port 5173
 
-### Troubleshooting
+# Terminal 3
+cd apps/weather && npm install && npm run dev # port 5174
+```
 
-**Issue**: `pnpm install` fails
-- **Solution**: Ensure you're using pnpm (not npm or yarn) and Node.js version is within the required range. Run `corepack enable` if pnpm is not found.
+### Build & run with Docker
 
-**Issue**: Build fails on Windows
-- **Solution**: Run `pnpm config set script-shell "C:\\Program Files\\git\\bin\\bash.exe"` if using Git Bash
+```bash
+docker build -t chatbridge .
+docker run -p 8080:8080 -e PORT=8080 chatbridge
+```
 
-**Issue**: Changes not reflecting in development
-- **Solution**: Stop the dev server, delete `node_modules/.vite`, and restart
+The Dockerfile builds all three apps (chess, weather, main) and serves them from a single nginx container:
+- `/` → main ChatBridge SPA
+- `/chess/` → chess app
+- `/weather/` → weather app
 
-## Star History
+---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=chatboxai/chatbox&type=Date)](https://star-history.com/#chatboxai/chatbox&Date)
+## Adding a New App
 
-## Contact
+### Option A: Iframe app (external UI, full isolation)
 
-[Twitter](https://x.com/ChatboxAI_HQ) | [Email](mailto:hi@chatboxai.com)
+1. Create `apps/yourapp/` as a Vite project
+2. Implement the postMessage protocol (listen for `TOOL_INVOKE`, send `STATE_UPDATE` / `COMPLETION`)
+3. Add a build stage in `Dockerfile` + location block in `nginx.conf`
+4. Add tool definitions in `src/renderer/packages/model-calls/toolsets/yourapp.ts`
+5. Register tools in `stream-text.ts`
+6. Add `appId` icon mapping in `$sessionId.tsx`
 
-## License
+### Option B: Inline React component (no iframe, tighter integration)
 
-[LICENSE](./LICENSE)
+1. Create `src/renderer/components/apps/YourApp.tsx` + scoped CSS
+2. Accept `onStateUpdate` prop and listen to `app:toolInvoke` custom events
+3. Add early-return render in `AppEmbed.tsx` for your `appId`
+4. Add tool definitions returning `{ action: 'render_app', appId: 'yourapp', appUrl: 'internal://yourapp' }`
+
+---
+
+## Security Notes
+
+- iframe apps are sandboxed with `sandbox="allow-scripts allow-same-origin allow-forms"`
+- postMessage origin is validated in `AppEmbed.tsx`
+- Inline apps (like Counting) run in the same React tree — only use for fully-trusted first-party code
+- No student PII is sent to third-party app URLs
+
+---
+
+## Upstream
+
+This project is a fork of [Chatbox Community Edition](https://github.com/chatboxai/chatbox), used under the [GPLv3 license](./LICENSE). The original Chatbox supports Windows, macOS, Linux, iOS, and Android desktop/mobile clients. This fork focuses on the web build only.

@@ -233,7 +233,7 @@ function RouteComponent() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 18, lineHeight: 1 }}>
-                {activeApp.appId === 'chess' ? '♟' : activeApp.appId === 'weather' ? '🌤' : '◻'}
+                {activeApp.appId === 'chess' ? '♟' : activeApp.appId === 'weather' ? '🌤' : activeApp.appId === 'counting' ? '🔢' : '◻'}
               </span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', textTransform: 'capitalize' }}>
                 {activeApp.appId}

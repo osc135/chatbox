@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { MessageAppPart } from '@shared/types'
 import { fetchChessOpponentMove } from '@/packages/chess-opponent-move'
 import { setChessState } from '@/packages/chess-state-store'
-import { setSpotifyState } from '@/packages/spotify-state-store'
+import CountingApp from '@/components/apps/CountingApp'
 
 type ChessOpponentMoveResultMsg = {
   type: 'OPPONENT_MOVE_RESULT'
@@ -20,8 +20,18 @@ interface AppEmbedProps {
 }
 
 export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedProps) {
+  // ── Inline apps (bundled with main app, no iframe needed) ─────────────────
+  if (part.appId === 'counting') {
+    const match = part.appUrl.match(/[?&]level=(\d)/)
+    const level = match ? (parseInt(match[1]!) as 1 | 2 | 3) : 1
+    return (
+      <div style={{ width: '100%', height: '100%' }}>
+        <CountingApp initialLevel={level} onStateUpdate={onStateUpdate} />
+      </div>
+    )
+  }
+
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const authPopupRef = useRef<Window | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
 
@@ -57,17 +67,8 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
         if (data.payload && typeof data.payload === 'object') {
           const payload = data.payload as Record<string, unknown>
           if (part.appId === 'chess') setChessState(payload)
-          if (part.appId === 'spotify') setSpotifyState(payload)
           if (onStateUpdate) onStateUpdate(payload)
         }
-      }
-
-      if (data.type === 'REQUEST_AUTH' && part.appId === 'spotify') {
-        const authUrl = data.authUrl as string | undefined
-        if (!authUrl) return
-        const popup = window.open(authUrl, 'spotify-auth', 'width=500,height=700,noopener=0')
-        if (popup) authPopupRef.current = popup
-        return
       }
 
       if (data.type === 'COMPLETION') {
@@ -127,23 +128,6 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
   }, [part.appId, sessionId, onStateUpdate])
-
-  // Listen for SPOTIFY_AUTH_COMPLETE from the OAuth popup, then forward AUTH_COMPLETE to the iframe.
-  useEffect(() => {
-    if (part.appId !== 'spotify') return
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type !== 'SPOTIFY_AUTH_COMPLETE') return
-      if (authPopupRef.current && event.source === authPopupRef.current) {
-        authPopupRef.current = null
-      }
-      iframeRef.current?.contentWindow?.postMessage(
-        { type: 'AUTH_COMPLETE', pluginId: 'spotify' },
-        '*',
-      )
-    }
-    window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
-  }, [part.appId])
 
   // Forward tool invocations dispatched by abstract-ai-sdk to the iframe.
   // Only the AppEmbed whose iframe is actively loaded handles the event,

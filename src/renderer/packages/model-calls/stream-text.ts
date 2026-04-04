@@ -35,7 +35,7 @@ import {
 } from './tools'
 import { chessTools } from './toolsets/chess'
 import { weatherTools } from './toolsets/weather'
-import { spotifyTools } from './toolsets/spotify'
+import { countingTools } from './toolsets/counting'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -163,7 +163,7 @@ export async function streamText(
 You have access to interactive mini-apps that render inline in the chat window. Use them proactively:
 - Chess: call chess__start_game when the user wants to play chess
 - Weather: call weather__show_weather when the user asks about weather, temperature, or forecasts for any location
-- Spotify: call spotify__open when the user wants to create a playlist, find music, or do anything with Spotify
+- Counting: call counting__open when a young student wants to practice counting, adding, or subtracting
 
 Rules:
 - Invoke the tool immediately — do not ask "would you like me to open X?" just do it
@@ -311,7 +311,7 @@ Rules:
       ...mcpController.getAvailableTools(),
       ...chessTools,
       ...weatherTools,
-      ...spotifyTools,
+      ...countingTools,
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool
