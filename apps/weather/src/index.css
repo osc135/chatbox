@@ -1,14 +1,18 @@
-* {
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400&family=Nunito:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
   background: transparent;
-  color: #d4d4d4;
+  color: #e2e8f0;
   height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -16,14 +20,36 @@ html, body {
   height: 100%;
 }
 
+/* ── App shell ───────────────────────────────────────────────────────────── */
+
 .app {
   display: flex;
   flex-direction: column;
   height: 100%;
-  transition: background 0.6s ease;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.8s ease;
 }
 
-/* ── Search bar ──────────────────────────────────────────────────────────── */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+.top-row,
+.weather-content,
+.skeleton-wrap,
+.state-msg {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
 
 .top-row {
   display: flex;
@@ -33,181 +59,445 @@ html, body {
   flex-shrink: 0;
 }
 
-.search-bar {
+.search-bar { flex: 1; min-width: 0; }
+
+.search-pill {
   display: flex;
-  flex: 1;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 100px;
+  padding: 9px 16px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.search-pill:focus-within {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.search-icon-svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 13px;
-  color: #fff;
+  min-width: 0;
+  background: transparent;
+  border: none;
   outline: none;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.search-input:focus {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.35);
-}
-
-.search-input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.search-btn {
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  color: #fff;
+  font-family: 'Nunito', sans-serif;
   font-size: 14px;
-  cursor: pointer;
-  transition: background 0.15s;
+  font-weight: 400;
+  color: #fff;
 }
 
-.search-btn:hover { background: rgba(255, 255, 255, 0.25); }
+.search-input::placeholder { color: rgba(255, 255, 255, 0.32); }
 
-.unit-toggle {
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.85);
+.unit-pill {
+  display: flex;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.unit-opt {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 100px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  font-family: 'Nunito', sans-serif;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
+  transition: background 0.18s, color 0.18s;
+  line-height: 1;
+  letter-spacing: 0.2px;
 }
 
-.unit-toggle:hover { background: rgba(255, 255, 255, 0.22); }
+.unit-opt--active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
 
 /* ── State messages ──────────────────────────────────────────────────────── */
 
 .state-msg {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.state-msg.error { color: #ff6b6b; }
-
-/* ── Center block (location + current + detail cards) ────────────────────── */
-
-.weather-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 16px 12px;
-  gap: 14px;
-}
-
-.location-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  text-align: center;
-  margin-bottom: 12px;
-  letter-spacing: 0.2px;
-}
-
-.current-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.current-emoji {
-  font-size: 64px;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.current-temp {
-  font-size: 72px;
-  font-weight: 200;
-  color: #fff;
-  line-height: 1;
-  letter-spacing: -3px;
-}
-
-.current-desc {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 4px;
-}
-
-/* ── Detail cards ────────────────────────────────────────────────────────── */
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.38);
+  text-align: center;
+  padding: 20px;
+}
+
+.state-msg--error { color: #fca5a5; }
+.state-icon       { width: 28px; height: 28px; }
+.state-icon--lg   { width: 40px; height: 40px; }
+
+/* ── Loading skeleton ────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+
+.sk {
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.7s ease-in-out infinite;
+}
+
+.skeleton-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 16px 20px;
+  overflow: hidden;
+}
+
+.sk-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sk-icon  { width: 88px; height: 88px; border-radius: 50%; }
+.sk-temp  { width: 160px; height: 64px; border-radius: 14px; }
+.sk-desc  { width: 110px; height: 16px; }
+
+.sk-cards-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
   width: 100%;
 }
 
-.detail-card {
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 14px 12px;
+.sk-card { height: 88px; }
+.sk-arc  { width: 100%; height: 80px; }
+
+.sk-forecast-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.sk-day { flex: 1; height: 90px; }
+
+/* ── Animated SVG weather icons ──────────────────────────────────────────── */
+
+.weather-icon { width: 100%; height: 100%; }
+
+@keyframes sunRotate {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+.sun-rays-group {
+  animation: sunRotate 22s linear infinite;
+  transform-origin: 50px 50px;
+}
+
+@keyframes sunHalo {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.65; }
+}
+
+.sun-halo { animation: sunHalo 3.5s ease-in-out infinite; }
+
+@keyframes cloudFloat {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-4px); }
+}
+
+.cloud-float-group { animation: cloudFloat 4.5s ease-in-out infinite; }
+
+@keyframes rainFall {
+  0%   { opacity: 0;    transform: translateY(-10px); }
+  25%  { opacity: 1;                                  }
+  100% { opacity: 0;    transform: translateY(16px);  }
+}
+
+.rain-drop-anim { animation: rainFall 1.3s ease-in infinite; }
+
+@keyframes snowDrift {
+  0%   { opacity: 0;    transform: translate(0px,   -10px); }
+  30%  { opacity: 0.88;                                     }
+  100% { opacity: 0;    transform: translate(4px,    20px); }
+}
+
+.snow-flake-anim { animation: snowDrift 2.2s ease-in infinite; }
+
+@keyframes lightningFlash {
+  0%, 80%, 100% { opacity: 0.9;  filter: drop-shadow(0 0 5px rgba(251,191,36,0.7)); }
+  88%            { opacity: 0.2;  filter: none; }
+}
+
+.lightning-anim { animation: lightningFlash 2.8s ease-in-out infinite; }
+
+@keyframes fogDrift {
+  0%, 100% { transform: translateX(0px);  opacity: 1;   }
+  50%       { transform: translateX(7px);  opacity: 0.7; }
+}
+
+.fog-line-anim { animation: fogDrift 3.2s ease-in-out infinite; }
+
+/* ── Weather content ─────────────────────────────────────────────────────── */
+
+/*
+ * space-between: hero sits at top, detail-grid in middle, forecast at bottom.
+ * Extra vertical space is distributed as two equal gaps between the sections —
+ * rather than piling it all inside the hero or leaving a void at the bottom.
+ */
+.weather-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  justify-content: space-between;
+  overflow: hidden;
+  min-height: 0;
+  padding: 8px 0 0;
 }
 
-.detail-card-icon {
-  font-size: 18px;
-  line-height: 1;
+/* ── Hero section ────────────────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
 
-.detail-card-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 20px 8px;
+  animation: fadeUp 0.4s ease both;
 }
 
-.detail-card-val {
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.detail-card-unit {
-  font-size: 13px;
+.location-name {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 28px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+  text-align: center;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
 }
 
-.detail-card-val--sm {
-  font-size: 15px;
-}
-
-/* ── Forecast ────────────────────────────────────────────────────────────── */
-
-.forecast-section {
-  flex-shrink: 0;
-  padding: 0 12px 16px;
-}
-
-.forecast-label {
+.location-country {
   font-size: 11px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.hero-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 8px;
+}
+
+.icon-wrap {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.temp-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.current-temp {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1;
+  animation: fadeUp 0.4s 0.08s ease both;
+}
+
+.temp-num {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 96px;
+  font-weight: 300;
+  color: #fff;
+  letter-spacing: -6px;
+}
+
+.temp-sup {
+  font-family: 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.55);
+  padding-top: 16px;
+  padding-left: 4px;
+}
+
+.current-desc {
+  font-size: 17px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.68);
+  animation: fadeUp 0.4s 0.14s ease both;
+}
+
+.feels-like {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 5px;
+  animation: fadeUp 0.4s 0.18s ease both;
+}
+
+/* ── Detail cards — 2-column grid ───────────────────────────────────────── */
+
+/*
+ * 2 columns instead of 4: cards are wider and more readable,
+ * and the section is naturally taller which fills vertical space better.
+ */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0 14px;
+  animation: fadeUp 0.4s 0.22s ease both;
+}
+
+.detail-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.detail-card--wide {
+  grid-column: 1 / -1;
+}
+
+.detail-card-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.detail-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
   letter-spacing: 0.8px;
+}
+
+/* Switched from Playfair (thin, elegant) to Nunito Bold (clear, legible) */
+.detail-card-val {
+  font-family: 'Nunito', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.detail-card-val--sm { font-size: 16px; }
+
+.detail-card-unit {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Sunrise / Sunset arc card ───────────────────────────────────────────── */
+
+.arc-card {
+  gap: 10px;
+}
+
+.sun-arc-svg {
+  width: 100%;
+  /* height scales with viewBox "0 0 100 50" ratio — let it breathe */
+  height: auto;
+  max-height: 130px;
+  min-height: 80px;
+}
+
+/* Two time callouts below the arc */
+.arc-times {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.arc-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.arc-time--right {
+  align-items: flex-end;
+}
+
+.arc-time-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.arc-time-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.arc-time-val {
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+}
+
+/* ── 7-Day Forecast ──────────────────────────────────────────────────────── */
+
+.forecast-section {
+  flex-shrink: 0;
+  padding: 0 14px 20px;
+  animation: fadeUp 0.4s 0.28s ease both;
+}
+
+.forecast-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
   margin-bottom: 8px;
   padding-left: 2px;
 }
@@ -218,59 +508,78 @@ html, body {
   overflow-x: auto;
 }
 
-.forecast::-webkit-scrollbar { height: 3px; }
+.forecast::-webkit-scrollbar { height: 2px; }
 .forecast::-webkit-scrollbar-track { background: transparent; }
-.forecast::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
+.forecast::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 2px; }
 
 .forecast-day {
   flex: 1;
-  min-width: 56px;
+  min-width: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 10px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 14px 6px;
 }
 
 .forecast-day.today {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.17);
 }
 
 .forecast-day-name {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-weight: 600;
 }
 
 .forecast-day.today .forecast-day-name {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .forecast-emoji {
-  font-size: 22px;
+  font-size: 26px;
   line-height: 1;
+}
+
+.temp-bar-track {
+  width: 80%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.temp-bar-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(to right, #60a5fa, #34d399, #fbbf24, #f97316);
 }
 
 .forecast-temps {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
+  width: 100%;
 }
 
 .forecast-high {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .forecast-low {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.36);
 }
