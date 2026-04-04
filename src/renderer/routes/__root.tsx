@@ -261,6 +261,16 @@ function Root() {
     }
   }, [needRoomForMacWindowControls])
 
+  const isLoginPage = location.pathname === '/login'
+
+  if (isLoginPage) {
+    return (
+      <ErrorBoundary name="main">
+        <Outlet />
+      </ErrorBoundary>
+    )
+  }
+
   return (
     <Box className="box-border App relative" spellCheck={spellCheck} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <BackgroundImageOverlay />

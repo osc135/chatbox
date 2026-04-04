@@ -6,6 +6,7 @@ import {
   IconHelpCircle,
   IconInfoCircle,
   IconLayoutSidebarLeftCollapse,
+  IconLogout,
   IconMessageChatbot,
   IconPhotoPlus,
   IconSettingsFilled,
@@ -25,6 +26,7 @@ import { useIsSmallScreen, useSidebarWidth } from './hooks/useScreenChange'
 import useVersion from './hooks/useVersion'
 import { navigateToSettings } from './modals/Settings'
 import { trackingEvent } from './packages/event'
+import { tutorAuthStore, useTutorUser } from './stores/tutorAuthStore'
 import platform from './platform'
 import { featureFlags } from './utils/feature-flags'
 import icon from './static/icon.png'
@@ -286,6 +288,18 @@ export default function Sidebar() {
               >
                 <ScalableIcon icon={IconSettingsFilled} size={20} />
               </ActionIcon>
+              <ActionIcon
+                variant="transparent"
+                color="chatbox-secondary"
+                size={24}
+                title="Sign out"
+                onClick={() => {
+                  tutorAuthStore.getState().clearAuth()
+                  navigate({ to: '/login', replace: true })
+                }}
+              >
+                <ScalableIcon icon={IconLogout} size={20} />
+              </ActionIcon>
 
               {/* <Text
                 c="chatbox-tertiary"
@@ -365,6 +379,7 @@ export default function Sidebar() {
                 variant="light"
                 p="xs"
               />
+              <LogoutNavItem navigate={navigate} />
             </>
           )}
         </Stack>
@@ -379,5 +394,29 @@ export default function Sidebar() {
         )}
       </Stack>
     </SwipeableDrawer>
+  )
+}
+
+function LogoutNavItem({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const user = useTutorUser()
+  if (!user) return null
+  return (
+    <NavLink
+      c="chatbox-tertiary"
+      className="rounded"
+      label={
+        <Flex direction="column" gap={0}>
+          <Text size="xs" fw={500} c="chatbox-secondary" style={{ lineHeight: 1.3 }}>{user.name}</Text>
+          <Text size="xs" c="chatbox-tertiary" style={{ lineHeight: 1.3, fontSize: 11 }}>Sign out</Text>
+        </Flex>
+      }
+      leftSection={<ScalableIcon icon={IconLogout} size={20} />}
+      onClick={() => {
+        tutorAuthStore.getState().clearAuth()
+        navigate({ to: '/login', replace: true })
+      }}
+      variant="light"
+      p="xs"
+    />
   )
 }
