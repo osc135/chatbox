@@ -166,7 +166,7 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
     return () => window.removeEventListener('app:toolInvoke', handler)
   }, [part.appId, loaded, sendToolInvoke])
 
-  // Loading timeout
+  // Loading timeout — 10 s to load, then show error with retry
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!loaded) setError(true)
@@ -174,19 +174,46 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
     return () => clearTimeout(timer)
   }, [loaded])
 
+  const appLabel = part.appId.charAt(0).toUpperCase() + part.appId.slice(1)
+
   if (error) {
     return (
       <div
         style={{
-          padding: 16,
-          borderRadius: 8,
-          background: '#1e1e1e',
-          color: '#e85d5d',
+          padding: '24px 20px',
+          borderRadius: 10,
+          background: '#1a1a1f',
+          border: '1px solid rgba(232,93,93,0.2)',
           textAlign: 'center',
-          fontSize: 13,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 10,
         }}
       >
-        Failed to load {part.appId}. Please try again.
+        <div style={{ fontSize: 28 }}>⚠️</div>
+        <div style={{ color: '#e85d5d', fontSize: 13.5, fontWeight: 600 }}>
+          {appLabel} failed to load
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12.5, lineHeight: 1.5, maxWidth: 260 }}>
+          The app took too long to respond. This can happen if the server is slow or offline.
+        </div>
+        <button
+          onClick={() => { setError(false); setLoaded(false) }}
+          style={{
+            marginTop: 4,
+            padding: '7px 16px',
+            background: 'rgba(232,93,93,0.12)',
+            border: '1px solid rgba(232,93,93,0.3)',
+            borderRadius: 6,
+            color: '#e85d5d',
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Try again
+        </button>
       </div>
     )
   }
@@ -196,13 +223,25 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
       {!loaded && (
         <div
           style={{
-            padding: 20,
+            padding: '24px 20px',
             textAlign: 'center',
-            color: '#666',
-            fontSize: 13,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 10,
           }}
         >
-          Loading...
+          <div style={{
+            width: 24, height: 24,
+            border: '2.5px solid rgba(255,255,255,0.08)',
+            borderTopColor: 'rgba(255,255,255,0.5)',
+            borderRadius: '50%',
+            animation: 'app-spin 0.7s linear infinite',
+          }} />
+          <style>{`@keyframes app-spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+            Loading {appLabel}…
+          </div>
         </div>
       )}
       <iframe
