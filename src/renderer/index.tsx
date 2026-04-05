@@ -72,6 +72,7 @@ async function initializeApp() {
   import('./setup/seed_counting_session').then((m) => m.seedCountingSession())
   import('./setup/seed_vocab_session').then((m) => m.seedVocabSession())
   import('./setup/seed_calendar_session').then((m) => m.seedCalendarSession())
+  import('./setup/seed_quiz_session').then((m) => m.seedQuizSession())
 
   // 最后执行 storage 清理，清理不 block 进入UI
   import('./setup/storage_clear')

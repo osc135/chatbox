@@ -39,6 +39,7 @@ import { weatherTools } from './toolsets/weather'
 import { countingTools } from './toolsets/counting'
 import { vocabTools } from './toolsets/vocab'
 import { calendarTools } from './toolsets/calendar'
+import { quizTools } from './toolsets/quiz'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -325,6 +326,7 @@ Rules:
       ...countingTools,
       ...vocabTools,
       ...calendarTools,
+      ...quizTools,
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool

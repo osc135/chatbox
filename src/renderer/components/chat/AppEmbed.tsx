@@ -7,6 +7,7 @@ import CountingApp from '@/components/apps/CountingApp'
 import VocabApp from '@/components/apps/VocabApp'
 import type { VocabCard } from '@/components/apps/VocabApp'
 import CalendarApp from '@/components/apps/CalendarApp'
+import QuizApp from '@/components/apps/QuizApp'
 
 type ChessOpponentMoveResultMsg = {
   type: 'OPPONENT_MOVE_RESULT'
@@ -50,6 +51,16 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
     return (
       <div style={{ width: '100%', height: '100%' }}>
         <CalendarApp prefill={prefill} onStateUpdate={onStateUpdate} />
+      </div>
+    )
+  }
+
+  if (part.appId === 'quiz') {
+    const topic = (part.state?.topic as string | undefined) ?? 'all'
+    const count = (part.state?.count as number | undefined) ?? 5
+    return (
+      <div style={{ width: '100%', height: '100%' }}>
+        <QuizApp topic={topic} count={count} onStateUpdate={onStateUpdate} />
       </div>
     )
   }

@@ -288,18 +288,7 @@ export default function Sidebar() {
               >
                 <ScalableIcon icon={IconSettingsFilled} size={20} />
               </ActionIcon>
-              <ActionIcon
-                variant="transparent"
-                color="chatbox-secondary"
-                size={24}
-                title="Sign out"
-                onClick={() => {
-                  tutorAuthStore.getState().clearAuth()
-                  navigate({ to: '/login', replace: true })
-                }}
-              >
-                <ScalableIcon icon={IconLogout} size={20} />
-              </ActionIcon>
+              <SmallScreenUserBadge navigate={navigate} />
 
               {/* <Text
                 c="chatbox-tertiary"
@@ -397,6 +386,26 @@ export default function Sidebar() {
   )
 }
 
+function SmallScreenUserBadge({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const user = useTutorUser()
+  if (!user) return null
+  return (
+    <Tooltip label={`${user.name} (${user.role}) · Sign out`} position="top" withArrow>
+      <ActionIcon
+        variant="transparent"
+        color="chatbox-secondary"
+        size={24}
+        onClick={() => {
+          tutorAuthStore.getState().clearAuth()
+          navigate({ to: '/login', replace: true })
+        }}
+      >
+        <ScalableIcon icon={IconLogout} size={20} />
+      </ActionIcon>
+    </Tooltip>
+  )
+}
+
 function LogoutNavItem({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   const user = useTutorUser()
   if (!user) return null
@@ -406,8 +415,10 @@ function LogoutNavItem({ navigate }: { navigate: ReturnType<typeof useNavigate> 
       className="rounded"
       label={
         <Flex direction="column" gap={0}>
-          <Text size="xs" fw={500} c="chatbox-secondary" style={{ lineHeight: 1.3 }}>{user.name}</Text>
-          <Text size="xs" c="chatbox-tertiary" style={{ lineHeight: 1.3, fontSize: 11 }}>Sign out</Text>
+          <Text size="xs" fw={600} c="chatbox-secondary" style={{ lineHeight: 1.3 }}>{user.name}</Text>
+          <Text size="xs" c="chatbox-tertiary" style={{ lineHeight: 1.3, fontSize: 11, textTransform: 'capitalize' }}>
+            {user.role} &middot; Sign out
+          </Text>
         </Flex>
       }
       leftSection={<ScalableIcon icon={IconLogout} size={20} />}
