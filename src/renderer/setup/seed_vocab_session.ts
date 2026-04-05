@@ -2,11 +2,7 @@ import { createSession, listSessionsMeta as getSessionList } from '@/stores/chat
 
 const SESSION_NAME = 'Vocab'
 
-const ICON =
-  'data:image/svg+xml;base64,' +
-  btoa(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#e67e22"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="28">📖</text></svg>`
-  )
+const ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0OCcgaGVpZ2h0PSc0OCcgdmlld0JveD0nMCAwIDQ4IDQ4Jz48cmVjdCB3aWR0aD0nNDgnIGhlaWdodD0nNDgnIHJ4PSc4JyBmaWxsPScjZTY3ZTIyJy8+PHRleHQgeD0nNTAlJyB5PSc1NSUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nMjAnIGZpbGw9J3doaXRlJyBmb250LWZhbWlseT0nc2VyaWYnIGZvbnQtd2VpZ2h0PSdib2xkJz5BYTwvdGV4dD48L3N2Zz4='
 
 export async function seedVocabSession() {
   const sessions = await getSessionList()

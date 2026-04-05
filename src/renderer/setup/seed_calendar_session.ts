@@ -2,11 +2,7 @@ import { createSession, listSessionsMeta as getSessionList } from '@/stores/chat
 
 const SESSION_NAME = 'Calendar'
 
-const ICON =
-  'data:image/svg+xml;base64,' +
-  btoa(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#e74c3c"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="28">📅</text></svg>`
-  )
+const ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0OCcgaGVpZ2h0PSc0OCcgdmlld0JveD0nMCAwIDQ4IDQ4Jz48cmVjdCB3aWR0aD0nNDgnIGhlaWdodD0nNDgnIHJ4PSc4JyBmaWxsPScjZTc0YzNjJy8+PHJlY3QgeD0nOCcgeT0nMTQnIHdpZHRoPSczMicgaGVpZ2h0PScyNicgcng9JzMnIGZpbGw9J3doaXRlJyBvcGFjaXR5PScwLjknLz48cmVjdCB4PSc4JyB5PScxNCcgd2lkdGg9JzMyJyBoZWlnaHQ9JzknIHJ4PSczJyBmaWxsPScjYzAzOTJiJy8+PHJlY3QgeD0nMTYnIHk9JzgnIHdpZHRoPSc0JyBoZWlnaHQ9JzEwJyByeD0nMicgZmlsbD0nI2MwMzkyYicvPjxyZWN0IHg9JzI4JyB5PSc4JyB3aWR0aD0nNCcgaGVpZ2h0PScxMCcgcng9JzInIGZpbGw9JyNjMDM5MmInLz48L3N2Zz4='
 
 export async function seedCalendarSession() {
   const sessions = await getSessionList()
