@@ -30,7 +30,7 @@ export interface AuthResponse {
     id: string
     name: string
     email: string
-    role: 'admin' | 'teacher' | 'student'
+    role: 'teacher' | 'student'
     grade?: string | null
     school?: string | null
   }
@@ -117,31 +117,39 @@ export const updateTeacherApps = (enabledApps: string[]) =>
     body: JSON.stringify({ enabledApps }),
   }).then((r) => r.enabledApps)
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
+// ── Google Calendar ───────────────────────────────────────────────────────────
 
-export interface TeacherSummary {
+export interface CalendarEvent {
   id: string
-  name: string
-  email: string
-  school: string | null
-  suspended: boolean
-  createdAt: string
-  _count: { students: number }
+  title: string
+  description: string
+  location: string
+  start: string
+  end: string
+  allDay: boolean
+  colorId: string
 }
 
-export const createTeacher = (data: { name: string; email: string; password: string; school?: string }) =>
-  request<{ teacher: TeacherSummary }>('/api/admin/teachers', {
+export const getCalendarStatus = () =>
+  request<{ connected: boolean }>('/api/calendar/status')
+
+export const getCalendarAuthUrl = () =>
+  request<{ url: string }>('/api/oauth/google/authorize').then((r) => r.url)
+
+export const disconnectCalendar = () =>
+  request<{ ok: boolean }>('/api/calendar/disconnect', { method: 'DELETE' })
+
+export const getCalendarEvents = () =>
+  request<{ events: CalendarEvent[] }>('/api/calendar/events').then((r) => r.events)
+
+export const createCalendarEvent = (data: {
+  title: string
+  date: string
+  startTime?: string
+  endTime?: string
+  description?: string
+}) =>
+  request<{ event: CalendarEvent }>('/api/calendar/events', {
     method: 'POST',
     body: JSON.stringify(data),
-  }).then((r) => r.teacher)
-
-export const getAdminStats = () =>
-  request<{ teacherCount: number; studentCount: number }>('/api/admin/stats')
-
-export const getTeachers = () =>
-  request<{ teachers: TeacherSummary[] }>('/api/admin/teachers').then((r) => r.teachers)
-
-export const suspendTeacher = (id: string) =>
-  request<{ teacher: { id: string; suspended: boolean } }>(`/api/admin/teachers/${id}/suspend`, {
-    method: 'PATCH',
-  }).then((r) => r.teacher)
+  }).then((r) => r.event)

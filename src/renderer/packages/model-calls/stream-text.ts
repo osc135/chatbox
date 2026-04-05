@@ -38,6 +38,7 @@ import { chessTools } from './toolsets/chess'
 import { weatherTools } from './toolsets/weather'
 import { countingTools } from './toolsets/counting'
 import { vocabTools } from './toolsets/vocab'
+import { calendarTools } from './toolsets/calendar'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -173,6 +174,7 @@ You have access to interactive mini-apps that render inline in the chat window. 
 - Weather: call weather__show_weather when the user asks about weather, temperature, or forecasts for any location
 - Counting: call counting__open when a young student wants to practice counting, adding, or subtracting
 - Vocabulary: call vocab__open when any student wants to study vocabulary words — you generate the word list based on their topic and grade level
+- Google Calendar: call calendar__open when the user wants to see their schedule, upcoming events, or add a new event; if they describe a specific event to create, prefill the form with the details
 
 Rules:
 - Invoke the tool immediately — do not ask "would you like me to open X?" just do it
@@ -322,6 +324,7 @@ Rules:
       ...weatherTools,
       ...countingTools,
       ...vocabTools,
+      ...calendarTools,
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool

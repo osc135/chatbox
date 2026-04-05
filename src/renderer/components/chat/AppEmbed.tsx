@@ -5,6 +5,7 @@ import { setChessState } from '@/packages/chess-state-store'
 import CountingApp from '@/components/apps/CountingApp'
 import VocabApp from '@/components/apps/VocabApp'
 import type { VocabCard } from '@/components/apps/VocabApp'
+import CalendarApp from '@/components/apps/CalendarApp'
 
 type ChessOpponentMoveResultMsg = {
   type: 'OPPONENT_MOVE_RESULT'
@@ -39,6 +40,15 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
     return (
       <div style={{ width: '100%', height: '100%' }}>
         <VocabApp initialCards={words} topic={topic} onStateUpdate={onStateUpdate} />
+      </div>
+    )
+  }
+
+  if (part.appId === 'calendar') {
+    const prefill = part.state?.prefill as { title?: string; date?: string; startTime?: string; endTime?: string; description?: string } | undefined
+    return (
+      <div style={{ width: '100%', height: '100%' }}>
+        <CalendarApp prefill={prefill} onStateUpdate={onStateUpdate} />
       </div>
     )
   }

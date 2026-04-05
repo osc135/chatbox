@@ -6,7 +6,7 @@ export interface TutorUser {
   id: string
   name: string
   email: string
-  role: 'admin' | 'teacher' | 'student'
+  role: 'teacher' | 'student'
   grade?: string | null   // students only
   school?: string | null  // teachers only
 }

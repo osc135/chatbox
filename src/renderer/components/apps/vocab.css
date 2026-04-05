@@ -1,53 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap');
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   All styles scoped under .vcb-app — zero global pollution
+   All styles scoped under .vcb-app
 ───────────────────────────────────────────────────────────────────────────── */
 
 .vcb-app {
-  /* Tokens */
-  --bg:           #0b0b12;
-  --bg2:          #111119;
-  --card:         #f5f0e8;
-  --card-ruled:   #ede7d9;
-  --ink:          #1a1825;
-  --ink-mid:      #4a4560;
-  --ink-dim:      #9590a8;
-  --gold:         #c49a3c;
-  --gold-lt:      #e8b84b;
-  --green:        #3ecf8e;
-  --green-dim:    rgba(62,207,142,.15);
-  --red:          #e8594a;
-  --red-dim:      rgba(232,89,74,.15);
-  --white:        rgba(255,255,255,.88);
-  --white-dim:    rgba(255,255,255,.35);
-  --radius:       18px;
+  --bg:          #eef2ff;
+  --bg2:         #e0e7ff;
+  --primary:     #6366f1;
+  --primary-dk:  #4f46e5;
+  --accent:      #f59e0b;
+  --accent-lt:   #fcd34d;
+  --green:       #10b981;
+  --green-dim:   rgba(16,185,129,.15);
+  --red:         #ef4444;
+  --red-dim:     rgba(239,68,68,.15);
+  --text:        #1e1b4b;
+  --text-mid:    #4338ca;
+  --text-dim:    #818cf8;
+  --white:       #ffffff;
+  --radius:      20px;
 
-  /* Layout */
   height: 100%;
-  background: var(--bg);
+  background: linear-gradient(160deg, #eef2ff 0%, #ede9fe 60%, #fce7f3 100%);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   padding: 16px;
   box-sizing: border-box;
-  font-family: 'Outfit', system-ui, sans-serif;
+  font-family: 'Nunito', system-ui, sans-serif;
   position: relative;
   overflow: hidden;
 }
 
-/* Subtle dot-grid texture */
-.vcb-app::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,.03) 1px, transparent 1px);
-  background-size: 22px 22px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.vcb-app > * { position: relative; z-index: 1; }
 .vcb-app *, .vcb-app *::before, .vcb-app *::after { box-sizing: border-box; }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
@@ -59,11 +44,11 @@
 }
 
 .vcb-topic {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
   font-size: 13px;
-  color: var(--gold-lt);
-  letter-spacing: .06em;
+  color: var(--primary);
+  letter-spacing: .05em;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -80,34 +65,36 @@
 
 .vcb-prog-track {
   flex: 1;
-  height: 3px;
-  background: rgba(255,255,255,.1);
-  border-radius: 3px;
+  height: 8px;
+  background: rgba(99,102,241,.15);
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .vcb-prog-fill {
   height: 100%;
-  background: var(--gold);
-  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), #a78bfa);
+  border-radius: 8px;
   transition: width .5s cubic-bezier(.4,0,.2,1);
 }
-.vcb-prog-fill--amber { background: linear-gradient(90deg, var(--gold), var(--gold-lt)); }
+.vcb-prog-fill--amber {
+  background: linear-gradient(90deg, var(--accent), var(--accent-lt));
+}
 
 .vcb-prog-label {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--white-dim);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--primary);
   white-space: nowrap;
 }
-.vcb-prog-sep { margin: 0 1px; opacity: .5; }
+.vcb-prog-sep { margin: 0 1px; opacity: .4; }
 
 .vcb-quiz-counter {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 500;
-  font-size: 12px;
-  color: var(--white-dim);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-mid);
   white-space: nowrap;
 }
 
@@ -128,7 +115,7 @@
   outline: none;
   border-radius: var(--radius);
 }
-.vcb-card:focus-visible { box-shadow: 0 0 0 2px var(--gold); border-radius: var(--radius); }
+.vcb-card:focus-visible { box-shadow: 0 0 0 3px var(--primary); }
 
 .vcb-card-inner {
   position: relative;
@@ -145,79 +132,52 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--white);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 28px 26px 24px;
+  gap: 20px;
+  padding: 32px 28px 28px;
   overflow: hidden;
-  /* Paper shadow */
   box-shadow:
-    0 2px 0 rgba(0,0,0,.06),
-    0 8px 24px rgba(0,0,0,.4),
-    0 24px 48px rgba(0,0,0,.3);
+    0 4px 6px rgba(99,102,241,.1),
+    0 12px 32px rgba(99,102,241,.15),
+    0 0 0 2px rgba(99,102,241,.08);
 }
 
-/* Ruled-line texture on card */
-.vcb-face::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  top: 0; bottom: 0;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 27px,
-    rgba(0,0,0,.055) 27px,
-    rgba(0,0,0,.055) 28px
-  );
-  border-radius: var(--radius);
-  pointer-events: none;
-}
-
-/* Gold top stripe */
+/* Colorful top stripe */
 .vcb-face::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--gold), var(--gold-lt), var(--gold));
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), #a78bfa, #ec4899);
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .vcb-face-back { transform: rotateY(180deg); }
 
 .vcb-face-label {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  font-size: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--primary);
+  background: rgba(99,102,241,.1);
+  padding: 4px 12px;
+  border-radius: 20px;
   position: relative;
   z-index: 1;
 }
 
 /* Front: definition text */
 .vcb-def-text {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-style: italic;
-  font-size: clamp(18px, 3.5vw, 26px);
-  color: var(--ink);
-  text-align: center;
-  line-height: 1.55;
-  margin: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.vcb-ex-text {
-  font-family: 'Outfit', sans-serif;
-  font-size: clamp(12px, 2vw, 14px);
-  font-weight: 400;
-  color: var(--ink-mid);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--text);
   text-align: center;
   line-height: 1.5;
   margin: 0;
@@ -225,43 +185,56 @@
   z-index: 1;
 }
 
-/* Blank placeholder where the word is hidden */
+.vcb-ex-text {
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #6366f180;
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Blank placeholder */
 .vcb-blank {
   display: inline-block;
-  min-width: 3.5em;
+  min-width: 3em;
   height: 1em;
-  border-bottom: 2.5px solid var(--gold);
+  border-bottom: 3px solid var(--accent);
   vertical-align: baseline;
-  margin: 0 2px;
+  margin: 0 3px;
   position: relative;
   top: 2px;
 }
 
 .vcb-cue {
-  font-family: 'Outfit', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: .08em;
-  color: var(--ink-dim);
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--text-dim);
   position: absolute;
-  bottom: 18px;
+  bottom: 16px;
   right: 20px;
   z-index: 1;
+  background: rgba(99,102,241,.08);
+  padding: 3px 10px;
+  border-radius: 20px;
 }
 
 /* Back: big word */
 .vcb-answer-word {
-  font-family: 'Bebas Neue', 'Arial Black', sans-serif;
-  font-size: clamp(38px, 9vw, 72px);
-  color: var(--ink);
+  font-family: 'Fredoka One', 'Arial Rounded MT Bold', sans-serif;
+  font-size: 64px;
+  color: var(--primary-dk);
   text-align: center;
   line-height: 1;
-  letter-spacing: .04em;
+  letter-spacing: .02em;
   margin: 0;
   position: relative;
   z-index: 1;
-  /* Subtle stamp effect */
-  text-shadow: 2px 3px 0 rgba(0,0,0,.08);
 }
 
 /* ── Action buttons ──────────────────────────────────────────────────────── */
@@ -273,11 +246,11 @@
 
 .vcb-act-btn {
   flex: 1;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  font-size: clamp(13px, 2.5vw, 15px);
-  padding: 13px 16px;
-  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   transition: opacity .15s, transform .1s;
@@ -286,42 +259,45 @@
 .vcb-act-btn:active { transform: translateY(2px); }
 
 .vcb-act-study {
-  background: rgba(255,255,255,.07);
-  color: var(--white-dim);
-  border: 1.5px solid rgba(255,255,255,.1);
+  background: var(--white);
+  color: var(--text-mid);
+  border: 2px solid rgba(99,102,241,.25);
+  box-shadow: 0 2px 8px rgba(99,102,241,.1);
 }
-.vcb-act-study:hover { background: rgba(255,255,255,.12); }
+.vcb-act-study:hover { background: var(--bg2); }
 
 .vcb-act-got {
-  background: var(--gold);
-  color: var(--ink);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dk));
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(99,102,241,.4);
 }
-.vcb-act-got:hover { background: var(--gold-lt); }
+.vcb-act-got:hover { opacity: .9; }
 
-/* ── CTA button (used in celebration + quiz) ─────────────────────────────── */
+/* ── CTA button ──────────────────────────────────────────────────────────── */
 .vcb-cta-btn {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: clamp(14px, 2.5vw, 16px);
-  padding: 12px 28px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 12px 30px;
   border-radius: 50px;
   border: none;
-  background: var(--gold);
-  color: var(--ink);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dk));
+  color: var(--white);
   cursor: pointer;
-  transition: background .15s, transform .1s;
+  box-shadow: 0 4px 12px rgba(99,102,241,.4);
+  transition: opacity .15s, transform .1s;
 }
-.vcb-cta-btn:hover { background: var(--gold-lt); }
+.vcb-cta-btn:hover { opacity: .9; }
 .vcb-cta-btn:active { transform: translateY(2px); }
-.vcb-cta-quiz { align-self: center; margin-top: 6px; }
+.vcb-cta-quiz { align-self: center; margin-top: 4px; }
 
 /* ── Celebration overlay ─────────────────────────────────────────────────── */
 .vcb-celeb {
   position: absolute;
   inset: 0;
   border-radius: var(--radius);
-  background: rgba(11,11,18,.93);
-  backdrop-filter: blur(4px);
+  background: rgba(238,242,255,.96);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,24 +309,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   z-index: 2;
   animation: vcb-pop .4s cubic-bezier(.175,.885,.32,1.275) both;
 }
 
 .vcb-celeb-msg {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: clamp(18px, 4vw, 26px);
-  color: var(--gold-lt);
-  letter-spacing: .02em;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--primary);
 }
 
 .vcb-celeb-word {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(30px, 7vw, 54px);
-  color: var(--white);
-  letter-spacing: .04em;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 48px;
+  color: var(--primary-dk);
   line-height: 1;
 }
 
@@ -380,28 +354,28 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   overflow-y: auto;
 }
 
 .vcb-quiz-word {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(32px, 7vw, 56px);
-  color: var(--white);
-  letter-spacing: .04em;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 48px;
+  color: var(--primary-dk);
+  letter-spacing: .02em;
   line-height: 1;
   text-align: center;
 }
 
 .vcb-quiz-prompt {
-  font-family: 'Outfit', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: .1em;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--white-dim);
+  color: var(--text-dim);
   text-align: center;
-  margin-top: -6px;
+  margin-top: -4px;
 }
 
 .vcb-choices { display: flex; flex-direction: column; gap: 8px; }
@@ -410,18 +384,20 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 13px 15px;
-  background: rgba(255,255,255,.05);
-  border: 1.5px solid rgba(255,255,255,.1);
-  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 2px solid rgba(99,102,241,.15);
+  border-radius: 14px;
   cursor: pointer;
   text-align: left;
-  transition: background .12s, border-color .12s;
+  transition: background .12s, border-color .12s, transform .1s;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 6px rgba(99,102,241,.07);
 }
 .vcb-choice:hover:not(:disabled) {
-  background: rgba(255,255,255,.1);
-  border-color: rgba(255,255,255,.25);
+  background: var(--bg);
+  border-color: rgba(99,102,241,.4);
+  transform: translateY(-1px);
 }
 .vcb-choice:disabled { cursor: default; }
 
@@ -436,22 +412,21 @@
 }
 
 .vcb-choice-label {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: .06em;
-  color: var(--gold);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 16px;
+  color: var(--primary);
   flex-shrink: 0;
-  width: 18px;
+  width: 20px;
   margin-top: 1px;
 }
 .vcb-choice.is-correct .vcb-choice-label { color: var(--green); }
 .vcb-choice.is-wrong   .vcb-choice-label { color: var(--red); }
 
 .vcb-choice-text {
-  font-family: 'Outfit', sans-serif;
-  font-size: clamp(12px, 2.5vw, 14px);
-  font-weight: 400;
-  color: var(--white);
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
   line-height: 1.45;
 }
 
@@ -476,47 +451,45 @@
 }
 
 .vcb-result-score {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(52px, 12vw, 86px);
-  color: var(--gold-lt);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 80px;
+  color: var(--primary);
   line-height: 1;
-  letter-spacing: .02em;
 }
 .vcb-result-denom {
   font-size: .55em;
-  color: var(--white-dim);
-  letter-spacing: 0;
+  color: var(--text-dim);
 }
 
 .vcb-result-label {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: clamp(16px, 3vw, 22px);
-  color: var(--white);
-  letter-spacing: .02em;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--text);
 }
 .vcb-result-sub {
-  font-family: 'Outfit', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--white-dim);
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 .vcb-missed {
   width: 100%;
-  background: rgba(255,255,255,.04);
-  border: 1.5px solid rgba(255,255,255,.08);
-  border-radius: 14px;
+  background: var(--white);
+  border: 2px solid rgba(239,68,68,.2);
+  border-radius: 16px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 2px 8px rgba(239,68,68,.08);
 }
 
 .vcb-missed-heading {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--red);
@@ -528,37 +501,37 @@
   flex-direction: column;
   gap: 3px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(99,102,241,.08);
 }
 .vcb-missed-row:last-child { border-bottom: none; padding-bottom: 0; }
 
 .vcb-missed-word {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px;
-  color: var(--white);
-  letter-spacing: .06em;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 20px;
+  color: var(--text);
+  letter-spacing: .02em;
 }
 .vcb-missed-def {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 13px;
-  color: var(--white-dim);
+  font-weight: 600;
+  color: var(--text-mid);
   line-height: 1.45;
 }
 
 .vcb-retry-btn {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
   font-size: 14px;
-  padding: 11px 24px;
+  padding: 11px 26px;
   border-radius: 50px;
-  border: 1.5px solid rgba(255,255,255,.18);
-  background: transparent;
-  color: var(--white-dim);
+  border: 2px solid rgba(99,102,241,.3);
+  background: var(--white);
+  color: var(--primary);
   cursor: pointer;
-  letter-spacing: .04em;
-  transition: border-color .15s, color .15s;
+  transition: border-color .15s, background .15s;
 }
-.vcb-retry-btn:hover { border-color: var(--white); color: var(--white); }
+.vcb-retry-btn:hover { border-color: var(--primary); background: var(--bg); }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .vcb-empty-state {
@@ -570,16 +543,18 @@
   justify-content: center;
   gap: 12px;
   border-radius: var(--radius);
-  border: 1.5px dashed rgba(255,255,255,.12);
+  border: 2px dashed rgba(99,102,241,.25);
+  background: rgba(255,255,255,.5);
 }
 .vcb-empty-icon {
-  font-size: 32px;
-  color: rgba(255,255,255,.2);
+  font-size: 36px;
+  color: var(--text-dim);
 }
 .vcb-empty-text {
-  font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-  color: var(--white-dim);
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-mid);
 }
 
 /* ── Animations ──────────────────────────────────────────────────────────── */

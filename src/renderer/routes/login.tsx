@@ -8,7 +8,6 @@ export const Route = createFileRoute('/login')({
 })
 
 const DEMO_USERS = [
-  { label: 'Admin', role: 'Admin', email: 'admin@chatbridge.dev', password: 'admin123', color: '#9b59b6', initial: 'A' },
   { label: 'Ms. Rivera', role: 'Teacher', email: 'teacher@chatbridge.dev', password: 'teacher123', color: '#c97d2e', initial: 'R' },
   { label: 'Luna', role: 'Kindergarten', email: 'luna@chatbridge.dev', password: 'luna1234', color: '#4a90a4', initial: 'L' },
   { label: 'Eli', role: '1st Grade', email: 'eli@chatbridge.dev', password: 'eli12345', color: '#7b6fa0', initial: 'E' },
@@ -38,9 +37,7 @@ function LoginPage() {
         role: user.role,
         grade: user.grade, school: user.school,
       })
-      if (user.role === 'admin') {
-        navigate({ to: '/admin', replace: true })
-      } else if (user.role === 'teacher') {
+      if (user.role === 'teacher') {
         navigate({ to: '/teacher', replace: true })
       } else {
         navigate({ to: '/', replace: true })
@@ -152,9 +149,6 @@ function LoginPage() {
           grid-template-columns: 1fr 1fr;
           gap: 8px;
           margin-bottom: 32px;
-        }
-        .lp-demo-grid > :first-child {
-          grid-column: 1 / -1;
         }
         .lp-demo-btn {
           display: flex;
