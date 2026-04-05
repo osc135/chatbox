@@ -1,6 +1,7 @@
 import NiceModal from '@ebay/nice-modal-react'
 import { ActionIcon, Button } from '@mantine/core'
 import type { Message, MessageAppPart, ModelProvider } from '@shared/types'
+import { MessageRoleEnum } from '@shared/types'
 import { IconX } from '@tabler/icons-react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -176,6 +177,33 @@ function RouteComponent() {
     return true
   }, [currentSession, lastGeneratingMessage])
 
+  // Tracks the last quiz result key so we only auto-submit once per quiz session.
+  const lastAutoSubmitKeyRef = useRef<string | null>(null)
+
+  const onAppStateUpdate = useCallback(
+    (state: Record<string, unknown>) => {
+      if (activeApp?.appId === 'vocab' && state.action === 'quiz_complete') {
+        const score = state.score as { correct: number; total: number }
+        const missed = (state.missedWords as string[]) ?? []
+        const key = `${score.correct}/${score.total}:${missed.join(',')}`
+        if (key === lastAutoSubmitKeyRef.current) return
+        lastAutoSubmitKeyRef.current = key
+        const text = missed.length === 0
+          ? `I just finished the vocab quiz and got ${score.correct} out of ${score.total} — perfect score!`
+          : `I just finished the vocab quiz and got ${score.correct} out of ${score.total}. I missed: ${missed.join(', ')}.`
+        void onSubmit({
+          constructedMessage: {
+            id: crypto.randomUUID(),
+            role: MessageRoleEnum.User,
+            contentParts: [{ type: 'text', text }],
+          } as Message,
+          needGenerating: true,
+        })
+      }
+    },
+    [activeApp?.appId, onSubmit]
+  )
+
   const model = useMemo(() => {
     if (!currentSession?.settings?.modelId || !currentSession?.settings?.provider) {
       return undefined
@@ -233,7 +261,7 @@ function RouteComponent() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 18, lineHeight: 1 }}>
-                {activeApp.appId === 'chess' ? '♟' : activeApp.appId === 'weather' ? '🌤' : activeApp.appId === 'counting' ? '🔢' : '◻'}
+                {activeApp.appId === 'chess' ? '♟' : activeApp.appId === 'weather' ? '🌤' : activeApp.appId === 'counting' ? '🔢' : activeApp.appId === 'vocab' ? '📚' : '◻'}
               </span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', textTransform: 'capitalize' }}>
                 {activeApp.appId}
@@ -244,7 +272,7 @@ function RouteComponent() {
             </ActionIcon>
           </div>
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <AppEmbed part={activeApp} sessionId={currentSession.id} />
+            <AppEmbed part={activeApp} sessionId={currentSession.id} onStateUpdate={onAppStateUpdate} />
           </div>
         </div>
       )}
