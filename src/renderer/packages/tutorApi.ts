@@ -30,7 +30,7 @@ export interface AuthResponse {
     id: string
     name: string
     email: string
-    role: 'teacher' | 'student'
+    role: 'admin' | 'teacher' | 'student'
     grade?: string | null
     school?: string | null
   }
@@ -105,3 +105,43 @@ export const updateStudent = (id: string, data: { name?: string; grade?: string 
 
 export const deleteStudent = (id: string) =>
   request<{ ok: boolean }>(`/api/teacher/students/${id}`, { method: 'DELETE' })
+
+// ── Teacher apps ──────────────────────────────────────────────────────────────
+
+export const getTeacherApps = () =>
+  request<{ enabledApps: string[] }>('/api/teacher/apps').then((r) => r.enabledApps)
+
+export const updateTeacherApps = (enabledApps: string[]) =>
+  request<{ enabledApps: string[] }>('/api/teacher/apps', {
+    method: 'PATCH',
+    body: JSON.stringify({ enabledApps }),
+  }).then((r) => r.enabledApps)
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export interface TeacherSummary {
+  id: string
+  name: string
+  email: string
+  school: string | null
+  suspended: boolean
+  createdAt: string
+  _count: { students: number }
+}
+
+export const createTeacher = (data: { name: string; email: string; password: string; school?: string }) =>
+  request<{ teacher: TeacherSummary }>('/api/admin/teachers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }).then((r) => r.teacher)
+
+export const getAdminStats = () =>
+  request<{ teacherCount: number; studentCount: number }>('/api/admin/stats')
+
+export const getTeachers = () =>
+  request<{ teachers: TeacherSummary[] }>('/api/admin/teachers').then((r) => r.teachers)
+
+export const suspendTeacher = (id: string) =>
+  request<{ teacher: { id: string; suspended: boolean } }>(`/api/admin/teachers/${id}/suspend`, {
+    method: 'PATCH',
+  }).then((r) => r.teacher)
