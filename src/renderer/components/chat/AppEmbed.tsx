@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { MessageAppPart } from '@shared/types'
 import { fetchChessOpponentMove } from '@/packages/chess-opponent-move'
 import { setChessState } from '@/packages/chess-state-store'
+import { setWeatherState } from '@/packages/weather-state-store'
 import CountingApp from '@/components/apps/CountingApp'
 import VocabApp from '@/components/apps/VocabApp'
 import type { VocabCard } from '@/components/apps/VocabApp'
@@ -89,6 +90,7 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
         if (data.payload && typeof data.payload === 'object') {
           const payload = data.payload as Record<string, unknown>
           if (part.appId === 'chess') setChessState(payload)
+          if (part.appId === 'weather') setWeatherState(payload)
           if (onStateUpdate) onStateUpdate(payload)
         }
       }

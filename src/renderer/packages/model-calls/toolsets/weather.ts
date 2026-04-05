@@ -1,5 +1,6 @@
 import { tool } from 'ai'
 import z from 'zod'
+import { getWeatherState } from '@/packages/weather-state-store'
 
 // Dev: localhost:3002. Prod (Railway): VITE_WEATHER_APP_URL=/weather (same-origin subpath).
 const WEATHER_APP_URL = (import.meta.env.VITE_WEATHER_APP_URL as string | undefined) || 'http://localhost:3002'
@@ -18,6 +19,17 @@ export const weatherTools = {
         appUrl: `${WEATHER_APP_URL}?location=${encodeURIComponent(input.location)}`,
         location: input.location,
       }
+    },
+  }),
+
+  weather__get_state: tool({
+    description:
+      'Get the current weather data being displayed in the weather panel. Use this when the user asks about the weather, temperature, conditions, or anything related to what is currently shown — for example "is it cold?", "will it rain?", "what\'s the humidity?". Call this before answering so your response reflects the actual data on screen.',
+    inputSchema: z.object({}),
+    execute: async () => {
+      const state = getWeatherState()
+      if (!state) return { error: 'No weather data loaded yet. Show a location first.' }
+      return state
     },
   }),
 
