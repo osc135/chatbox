@@ -1,50 +1,76 @@
 import { tool } from 'ai'
 import z from 'zod'
 import QuizApp from '@/components/apps/QuizApp'
+import { getPluginState } from '@/packages/plugin-state-store'
 import type { InlinePlugin, InlinePluginProps } from '@/packages/plugin-sdk/types'
-import { useTutorUser } from '@/stores/tutorAuthStore'
+
+const QuestionSchema = z.object({
+  q: z.string().describe('The question text'),
+  options: z
+    .tuple([z.string(), z.string(), z.string(), z.string()])
+    .describe('Exactly four answer choices'),
+  answer: z
+    .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+    .describe('Index of the correct answer (0–3)'),
+  explanation: z
+    .string()
+    .optional()
+    .describe('Brief explanation of why the answer is correct'),
+})
 
 function QuizWrapper({ state, onStateUpdate }: InlinePluginProps) {
-  const topic = (state['topic'] as string | undefined) ?? 'all'
-  const count = (state['count'] as number | undefined) ?? 5
-  const user = useTutorUser()
-  return <QuizApp topic={topic} count={count} grade={user?.grade} onStateUpdate={onStateUpdate} />
+  const questions = state['questions'] as Array<{
+    q: string
+    options: [string, string, string, string]
+    answer: 0 | 1 | 2 | 3
+    explanation?: string
+  }> | undefined
+  const topic = state['topic'] as string | undefined
+  return <QuizApp questions={questions ?? []} topic={topic} onStateUpdate={onStateUpdate} />
 }
 
 export const quizPlugin: InlinePlugin = {
   id: 'quiz',
   name: 'Subject Quiz',
-  description: 'Multiple-choice quiz covering math, science, history, geography, and ELA',
-  version: '1.0.0',
+  description: 'Interactive multiple-choice quiz — you generate the questions based on topic and grade',
+  version: '2.0.0',
   author: 'TutorMeAI',
   type: 'inline',
   component: QuizWrapper,
   systemPromptHint:
-    '- Quiz: call quiz__start when a student wants to be tested or review material on a subject',
+    '- Quiz: call quiz__start when a student wants to be tested or review material; generate questions yourself tailored to their grade and the current topic. Call quiz__get_results to retrieve their answers and score after they finish.',
 
   tools: {
     quiz__start: tool({
       description:
-        'Open an interactive multiple-choice quiz on a specific subject. Use this when a student wants to be tested, practice, or review material. Topics: math, science, history, geography, ela (English Language Arts), or all for a mixed quiz. The quiz renders inline in the chat.',
+        'Open an interactive multiple-choice quiz with questions you generate. Create 3–8 questions appropriate for the student\'s grade level and the topic you\'ve been discussing. Each question has four options and one correct answer. The quiz renders inline — do not tell the user to visit a link.',
       inputSchema: z.object({
-        topic: z
-          .enum(['math', 'science', 'history', 'geography', 'ela', 'all'])
-          .describe('Subject area for the quiz'),
-        count: z
-          .number()
-          .int()
+        questions: z
+          .array(QuestionSchema)
           .min(3)
           .max(8)
+          .describe('The quiz questions. Generate them yourself based on grade level and topic.'),
+        topic: z
+          .string()
           .optional()
-          .describe('Number of questions (3–8, default 5)'),
+          .describe('Label shown at the top of the quiz, e.g. "Chapter 4: Photosynthesis"'),
       }),
-      execute: async (input: { topic: string; count?: number }) => ({
+      execute: async (input: {
+        questions: Array<{ q: string; options: [string, string, string, string]; answer: 0 | 1 | 2 | 3; explanation?: string }>
+        topic?: string
+      }) => ({
         action: 'render_app',
         appId: 'quiz',
-        appUrl: 'internal://quiz',
+        questions: input.questions,
         topic: input.topic,
-        count: input.count ?? 5,
       }),
+    }),
+
+    quiz__get_results: tool({
+      description:
+        'Retrieve the student\'s quiz results — their score, which questions they missed, and the correct answers. Call this after the student finishes the quiz to give them feedback or discuss what they got wrong.',
+      inputSchema: z.object({}),
+      execute: async () => getPluginState('quiz') ?? { status: 'no quiz results yet' },
     }),
   },
 }
