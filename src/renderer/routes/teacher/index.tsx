@@ -30,6 +30,14 @@ const ALL_APPS = [
 function TeacherDashboard() {
   const navigate = useNavigate()
   const user = useTutorUser()
+
+  // Students and non-authenticated users have no business here
+  useEffect(() => {
+    if (user && user.role !== 'teacher') {
+      void navigate({ to: '/', replace: true })
+    }
+  }, [user, navigate])
+
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)

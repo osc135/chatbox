@@ -399,7 +399,7 @@ const MessageList = forwardRef<MessageListRef, MessageListProps>((props, ref) =>
             className={platformType === 'win32' ? 'scrollbar-custom' : ''}
             data={renderItems}
             ref={virtuoso}
-            followOutput="smooth"
+            followOutput={true}
             {...(sessionScrollPositionCache.has(currentSession.id)
               ? {
                   restoreStateFrom: sessionScrollPositionCache.get(currentSession.id),
@@ -421,7 +421,7 @@ const MessageList = forwardRef<MessageListRef, MessageListProps>((props, ref) =>
                     <div
                       className="flex flex-col pt-5"
                       style={
-                        messageViewportHeight > 0 && isNewMessage
+                        messageViewportHeight > 0 && isNewMessage && isLastItem
                           ? { minHeight: `${messageViewportHeight}px` }
                           : undefined
                       } // key

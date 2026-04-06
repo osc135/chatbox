@@ -82,6 +82,8 @@
     "@babel/core": "^7.28.0",
     "@babel/plugin-transform-class-static-block": "^7.27.1",
     "@babel/preset-env": "^7.28.0",
+    "chess.js": "^1.0.0-beta.8",
+    "react-chessboard": "^4.7.2",
     "@biomejs/biome": "2.0.0",
     "@braintree/sanitize-url": "^6.0.4",
     "@capacitor-community/sqlite": "^7.0.2",

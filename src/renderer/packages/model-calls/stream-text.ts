@@ -34,12 +34,7 @@ import {
   knowledgeBaseSearchByPromptEngineering,
   searchByPromptEngineering,
 } from './tools'
-import { chessTools } from './toolsets/chess'
-import { weatherTools } from './toolsets/weather'
-import { countingTools } from './toolsets/counting'
-import { vocabTools } from './toolsets/vocab'
-import { calendarTools } from './toolsets/calendar'
-import { quizTools } from './toolsets/quiz'
+import { buildToolSet, buildSystemPromptHints } from '../pluginRegistry'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -168,14 +163,12 @@ export async function streamText(
     ? `\nThe student you are tutoring is in grade ${tutorUser.grade === 'K' ? 'Kindergarten' : tutorUser.grade}. Tailor all explanations, vocabulary, and activities to be age-appropriate for that grade level.\n`
     : ''
 
-  // Always include ChatBridge app tool guidance so every session can invoke mini-apps
+  // Always include ChatBridge app tool guidance so every session can invoke mini-apps.
+  // buildSystemPromptHints() is generated from the plugin registry — adding a new plugin
+  // automatically includes its hint here without any manual edits to this file.
   let toolSetInstructions = `${studentContext}
 You have access to interactive mini-apps that render inline in the chat window. Use them proactively:
-- Chess: call chess__start_game when the user wants to play chess
-- Weather: call weather__show_weather when the user asks about weather, temperature, or forecasts for any location
-- Counting: call counting__open when a young student wants to practice counting, adding, or subtracting
-- Vocabulary: call vocab__open when any student wants to study vocabulary words — you generate the word list based on their topic and grade level
-- Google Calendar: call calendar__open when the user wants to see their schedule, upcoming events, or add a new event; if they describe a specific event to create, prefill the form with the details
+${buildSystemPromptHints()}
 
 Rules:
 - Invoke the tool immediately — do not ask "would you like me to open X?" just do it
@@ -318,15 +311,10 @@ Rules:
       }
     }
 
-    // 4. construct tool set
+    // 4. construct tool set — registry-driven, no manual per-plugin imports needed
     let tools: ToolSet = {
       ...mcpController.getAvailableTools(),
-      ...chessTools,
-      ...weatherTools,
-      ...countingTools,
-      ...vocabTools,
-      ...calendarTools,
-      ...quizTools,
+      ...buildToolSet(),
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool

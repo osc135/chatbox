@@ -1,6 +1,6 @@
 import { tutorAuthStore } from '@/stores/tutorAuthStore'
 
-const API_URL = (process.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
+const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3002').replace(/\/$/, '')
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = tutorAuthStore.getState().token

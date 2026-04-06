@@ -1,25 +1,12 @@
 /**
- * Module-level store for the last known weather state.
- * Written by AppEmbed on every STATE_UPDATE from the weather iframe.
- * Read by weather__get_state so the LLM gets real weather data.
+ * Weather state store — thin wrapper around the generic plugin-state-store.
  */
-
-interface WeatherState {
-  location: string
-  temperature: number
-  unit: string
-  conditions: string
-  humidity: number
-  wind: number
-  summary: string
-}
-
-let lastState: WeatherState | null = null
+import { setPluginState, getPluginState } from './plugin-state-store'
 
 export function setWeatherState(state: Record<string, unknown>): void {
-  lastState = state as unknown as WeatherState
+  setPluginState('weather', state)
 }
 
-export function getWeatherState(): WeatherState | null {
-  return lastState
+export function getWeatherState(): Record<string, unknown> | null {
+  return getPluginState('weather')
 }
