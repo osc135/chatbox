@@ -20,9 +20,13 @@ export default function AppEmbed({ part, sessionId, onStateUpdate }: AppEmbedPro
   // No per-app if/else needed — the manifest carries the component.
   if (plugin?.type === 'inline') {
     const Component = plugin.component
+    const handleStateUpdate = (state: Record<string, unknown>) => {
+      setPluginState(part.appId, state)
+      onStateUpdate?.(state)
+    }
     return (
       <div style={{ width: '100%', height: '100%' }}>
-        <Component state={part.state ?? {}} sessionId={sessionId} onStateUpdate={onStateUpdate} />
+        <Component state={part.state ?? {}} sessionId={sessionId} onStateUpdate={handleStateUpdate} />
       </div>
     )
   }
