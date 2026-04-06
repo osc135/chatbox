@@ -8,376 +8,411 @@ A production-grade AI chat platform with embedded third-party app integration, b
 
 ## What This Is
 
-ChatBridge extends Chatbox into a mini-app platform. The AI assistant can launch interactive educational tools directly inside the chat window. Apps communicate bidirectionally with the chatbot — the LLM knows what's happening inside an app and can respond to it.
+ChatBridge turns Chatbox into a mini-app platform for classrooms. The AI assistant can launch interactive educational tools directly inside the chat window and stay contextually aware of what's happening inside them — so a student can say "what should I do here?" mid-chess-game and get a real answer, or finish a vocab quiz and have the chatbot summarize their results.
 
-**Use case:** A student says "I want to practice adding" → the chatbot opens the counting app at the right level → student works through problems → the chatbot can see the score, encourage them, or switch levels.
+Third-party apps register via a **plugin manifest**. The platform discovers their tools, injects them into the LLM's context, routes invocations, renders the UI, and persists state — all without knowing anything about the app in advance.
 
 ---
 
 ## Apps
 
-### ♟ Chess (iframe)
-Full chess board with legal move validation. The LLM plays as opponent, analyzing board state on request.
+Six apps ship with the platform, covering a range of complexity levels, integration patterns, and auth requirements:
+
+| App | Type | Auth | Pattern |
+|-----|------|------|---------|
+| ♟ Chess | Inline React | None | Complex bidirectional state, LLM opponent |
+| 🌤 Weather | Inline React | None | External public API, read-only |
+| 🔢 Counting | Inline React | None | K-2 math practice, Web Audio API |
+| 📖 Vocab | Inline React | None | LLM-generated flashcard sets + quiz |
+| 📅 Google Calendar | Inline React | OAuth 2.0 | OAuth flow, token refresh, event CRUD |
+| ❓ Quiz | Inline React | None | LLM-generated questions, score reporting |
+
+### ♟ Chess
+Full chess board (react-chessboard + chess.js) with legal move validation. The LLM plays as opponent via a direct API call — no postMessage round-trip. Four difficulty levels including a random-move "super dumb" mode that works offline.
 
 | Tool | What it does |
 |------|-------------|
-| `chess__start_game` | Launch board, set player color |
-| `chess__make_move` | Submit a move (UCI notation) |
-| `chess__get_board_state` | Get FEN + move history for LLM analysis |
+| `chess__start_game` | Launch board, begin a new game |
+| `chess__make_move` | Submit a move by algebraic notation |
+| `chess__get_board_state` | Return FEN + turn + status for LLM analysis |
+| `chess__resign` | Forfeit the current game |
 
-### 🌤 Weather (iframe)
-Current conditions + 14-day forecast for any location. Pulls from [Open-Meteo](https://open-meteo.com/) — free, no API key required.
-
-| Tool | What it does |
-|------|-------------|
-| `weather__show` | Open weather panel for a city |
-
-### 📖 Vocab (inline React component)
-Flashcard-style vocabulary practice. The LLM generates a set of word/definition pairs on any topic and the student works through them.
+### 🌤 Weather
+Current conditions + 7-day forecast from [Open-Meteo](https://open-meteo.com/) (free, no API key). Animated SVG weather icons, sunrise/sunset arc, temperature range bars.
 
 | Tool | What it does |
 |------|-------------|
-| `vocab__open` | Launch flashcard set with a given topic and word list |
+| `weather__show_weather` | Open the weather panel for a location |
+| `weather__update_location` | Switch to a different city while panel is open |
+| `weather__get_state` | Read current conditions for LLM context |
 
-### 📅 Google Calendar (inline React component, OAuth)
-Connect a Google account and manage calendar events without leaving the chat. Requires OAuth authorization the first time.
-
-| Tool | What it does |
-|------|-------------|
-| `calendar__open` | Open the calendar panel (optionally pre-fill a new event) |
-
-Auth flow: user clicks "Connect Calendar" → Google OAuth consent screen → tokens stored server-side → subsequent invocations use stored token automatically.
-
-### 🔢 Counting (inline React component)
-K-2 math practice app (ages 5–8). Three leveled activities with audio feedback and celebration animations. Does **not** use an iframe — rendered as a direct React component for zero-latency and tighter integration.
+### 🔢 Counting
+K-2 math practice (ages 5–8). Three levelled activities using a ten-frame grid and a number line. Wrong answers trigger a shake animation + audio feedback; correct answers play a Web Audio API arpeggio. All sounds are synthesized — no audio files.
 
 | Tool | What it does |
 |------|-------------|
-| `counting__open` | Launch the app at a specific level |
+| `counting__open` | Launch at a specific level (1–3) |
 | `counting__set_level` | Switch levels mid-session |
 
-#### Counting App Levels
+### 📖 Vocab
+Flashcard deck + quiz mode. The LLM generates word/definition pairs on any topic; students flip through them then take a scored quiz. On quiz completion the chatbot receives the score and missed words automatically.
 
-**Level 1 — Count Objects**
-- 1–10 emoji objects displayed in a ten-frame grid (rows of 5 — standard K-2 subitizing layout)
-- "How many [emoji] do you see?"
-- Student picks from 4 large number buttons (correct + 3 nearby distractors)
-- Wrong answer: shake animation + "Oops! Try again!" — 800ms lockout then retry
+| Tool | What it does |
+|------|-------------|
+| `vocab__start` | Generate a flashcard set for a topic |
 
-**Level 2 — Add (Count On)**
-- Number line 0–10
-- Frog 🐸 starts at a position (0–5); student presses HOP to move it right
-- After all hops: "Where did 🐸 land?" — student picks from 4 choices before celebration
+### 📅 Google Calendar
+Connect a Google account and manage calendar events without leaving the chat. Full OAuth 2.0 flow: user clicks "Connect Calendar" → Google consent screen → tokens stored server-side → subsequent calls use the stored token automatically with refresh.
 
-**Level 3 — Subtract (Count Back)**
-- Same number line; frog starts at 5–10 and hops left
-- Same answer-confirmation step before celebration
+| Tool | What it does |
+|------|-------------|
+| `calendar__open` | Open calendar panel (optionally pre-fill a new event) |
 
-#### Audio
-All sounds use Web Audio API — no external files.
+### ❓ Quiz
+Multiple-choice quiz with LLM-generated questions on any topic. Score and wrong answers are reported back to the chatbot for follow-up discussion.
 
-| Event | Sound |
-|-------|-------|
-| Correct answer | Ascending C–E–G–C arpeggio (triangle wave) |
-| Wrong answer | Soft descending slide (340 Hz → 210 Hz) |
-| Frog hop | Two-syllable "rib-bit" (sawtooth with amplitude gap) |
+| Tool | What it does |
+|------|-------------|
+| `quiz__start` | Generate and launch a quiz on a topic |
 
 ---
 
 ## Architecture
 
-### Plugin Communication
+### Plugin Registry
 
-**iframe apps (Chess, Weather)**
-Apps run as separate Vite builds served at `/chess/` and `/weather/`. Communication uses `window.postMessage`:
-
-```
-Parent → App:   { type: 'TOOL_INVOKE', pluginId, invocationId, tool, params }
-App → Parent:   { type: 'STATE_UPDATE', pluginId, invocationId, payload }
-                { type: 'COMPLETION',   pluginId, invocationId, result }
-                { type: 'ERROR',        pluginId, invocationId, error }
-```
-
-**Inline apps (Counting)**
-Rendered as a React component inside `AppEmbed`. No postMessage hop:
-- State updates via `onStateUpdate` prop callback
-- Tool invocations via `window.dispatchEvent(new CustomEvent('app:toolInvoke', { detail }))`
-
-### Tool → Panel Lifecycle
+Every app is a **`PluginManifest`** — a plain TypeScript object that declares its id, tools, system prompt hint, and either a React component (inline) or a URL (iframe). The registry is the only place apps are registered; no other file needs to change to add an app.
 
 ```
-LLM returns { action: 'render_app', appId, appUrl }
-  → abstract-ai-sdk creates MessageAppPart
-    → $sessionId.tsx detects new app part, opens side panel (60% width)
-      → AppEmbed renders iframe OR inline component
-        → app sends STATE_UPDATE on every significant change
-          → LLM context is updated with app state
+src/renderer/packages/
+├── plugin-sdk/
+│   ├── types.ts          ← PluginManifest, InlinePlugin, IframePlugin, all message shapes
+│   └── sanitize.ts       ← strips prompt-injection patterns from tool descriptions at registration
+├── plugin-state-store.ts ← generic Map<pluginId, state> — all apps share one store
+├── pluginRegistry.ts     ← imports all manifests, exposes getPlugin / buildToolSet / buildSystemPromptHints
+└── plugins/
+    ├── chess.ts           ← InlinePlugin manifest
+    ├── weather.ts         ← InlinePlugin manifest
+    ├── counting.tsx       ← InlinePlugin manifest
+    ├── vocab.tsx          ← InlinePlugin manifest
+    ├── calendar.tsx       ← InlinePlugin manifest
+    └── quiz.tsx           ← InlinePlugin manifest
 ```
+
+`stream-text.ts` calls `buildToolSet()` and `buildSystemPromptHints()` once at stream start — the LLM automatically knows about every registered app with no per-app code in the streaming layer.
+
+### Two App Types
+
+**Inline (all current apps)**
+Rendered as a React component inside `AppEmbed`. No iframe, no postMessage:
+- Tool invocations arrive via `window.dispatchEvent(new CustomEvent('app:toolInvoke', { detail }))`, dispatched by the AI SDK layer
+- State changes call the `onStateUpdate(payload)` prop, which writes to the plugin state store and updates LLM context
+- Initial state (e.g. the location for weather) is passed via the `state` prop from the tool call result
+
+**Iframe (supported, not currently used)**
+For apps that need full isolation or are hosted externally. Communication uses `window.postMessage` with strict origin validation. The sandbox defaults to `allow-scripts` only — no `allow-same-origin` — preventing co-located iframes from accessing the parent's auth tokens even when served from the same domain.
+
+### Full Lifecycle
+
+```
+User: "let's play chess"
+  → LLM calls chess__start_game
+    → execute() returns { action: 'render_app', appId: 'chess' }
+      → abstract-ai-sdk creates a MessageAppPart in the message stream
+        → $sessionId.tsx detects new app part, opens side panel
+          → AppEmbed looks up 'chess' in pluginRegistry
+            → renders <ChessApp state={...} sessionId={...} onStateUpdate={...} />
+              → player moves a piece
+                → onStateUpdate({ fen, turn, status }) is called
+                  → setPluginState('chess', payload)
+                    → LLM context updated
+
+User: "what should I do here?"
+  → chess__get_board_state tool is called
+    → getPluginState('chess') returns current FEN + status
+      → LLM analyzes position and responds
+```
+
+### Security Model
+
+| Concern | Mitigation |
+|---------|-----------|
+| Prompt injection via tool descriptions | `sanitizePluginManifest()` strips injection patterns at registration time |
+| Iframe auth token leakage | `sandbox="allow-scripts"` only — no `allow-same-origin` |
+| Spoofed postMessage from other frames | `event.source` validated against the specific iframe's `contentWindow` |
+| Cross-origin iframe messages | `event.origin` validated against the registered plugin URL |
+| Student data exposure | No PII sent to third-party app URLs; state store is in-process only |
 
 ### Side Panel Layout
 
-```
-┌─────────────────────────────────────┐
-│  Chat (40%)   │  App Panel (60%)    │
-│               │  ┌───────────────┐  │
-│  messages...  │  │  [app here]   │  │
-│               │  └───────────────┘  │
-│  [input box]  │                     │
-└─────────────────────────────────────┘
-```
-
-### Key Files
+When an app opens, the chat column shrinks to 40% and the app takes 60%:
 
 ```
-src/renderer/
-├── components/
-│   ├── apps/
-│   │   ├── CountingApp.tsx         # Inline counting mini-app
-│   │   └── counting.css            # Scoped styles (all .cnt-* prefixed)
-│   └── chat/
-│       └── AppEmbed.tsx            # Renders iframe apps OR inline components
-├── packages/model-calls/
-│   ├── stream-text.ts              # Tool registry + system prompt
-│   └── toolsets/
-│       ├── chess.ts                # Chess tool definitions
-│       ├── weather.ts              # Weather tool definitions
-│       └── counting.ts             # Counting tool definitions
-├── routes/session/$sessionId.tsx   # Side panel layout + app panel
-└── setup/
-    └── seed_counting_session.ts    # Seeds "Counting Fun" demo session
-
-apps/
-├── chess/      # Standalone Vite app (served at /chess/)
-└── weather/    # Standalone Vite app (served at /weather/)
+┌──────────────────────────────────────────────┐
+│   Chat (40%)         │   App Panel (60%)      │
+│                      │  ┌──────────────────┐  │
+│   messages...        │  │   [app renders]  │  │
+│                      │  └──────────────────┘  │
+│   [input box]        │                        │
+└──────────────────────────────────────────────┘
 ```
 
 ---
 
-## Development
+## Setup
 
 ### Prerequisites
 
 - Node.js v20–v22
-- pnpm v10+ (`corepack enable && corepack prepare pnpm@latest --activate`)
+- pnpm v10 (`corepack enable && corepack prepare pnpm@latest --activate`)
+- PostgreSQL (local or Railway)
 
-### Run locally (web mode)
+### Run locally
 
 ```bash
+# 1. Install dependencies
+cd chatbox
 pnpm install
+
+# 2. Configure frontend
+cp .env.example .env
+# Set VITE_API_URL=http://localhost:3002
+
+# 3. Start the frontend (web mode)
 pnpm run dev:web
+# → http://localhost:1212
 ```
 
-App runs at `http://localhost:1212`. The chess and weather sidecar apps need to be running separately if you're developing them:
-
 ```bash
-# Terminal 2
-cd apps/chess && npm install && npm run dev   # port 5173
-
-# Terminal 3
-cd apps/weather && npm install && npm run dev # port 5174
-```
-
-### Run the backend
-
-The backend is a separate Express service in `../backend/` that handles user auth, teacher/student management, and Google Calendar OAuth.
-
-```bash
-cd ../backend
+# In a second terminal — start the backend
+cd backend
 cp .env.example .env   # fill in values (see table below)
 npm install
-npm run dev            # runs on port 3001
+npm run dev
+# → http://localhost:3002
 ```
 
-Set `VITE_API_URL=http://localhost:3001` in the frontend's `.env` (or `chatbox/.env`) to connect to the local backend.
-
-#### Environment variables
+### Environment Variables
 
 **Backend (`backend/.env`)**
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string (e.g. `postgresql://user:pass@localhost:5432/chatbridge`) |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `BETTER_AUTH_SECRET` | Yes | Random secret for signing auth tokens (32+ chars) |
-| `BETTER_AUTH_URL` | Yes | Public base URL of the backend (e.g. `https://chatbridge-backend-production.up.railway.app`) |
-| `GOOGLE_CLIENT_ID` | Yes | Google OAuth2 client ID (for Calendar app) |
+| `BETTER_AUTH_URL` | Yes | Public base URL of the backend |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth2 client ID (for Calendar) |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth2 client secret |
-| `CORS_ORIGIN` | Yes | Frontend origin to allow (e.g. `https://your-frontend.railway.app`) |
-| `RESEND_API_KEY` | No | [Resend](https://resend.com) API key — enables welcome emails when teachers create students |
-| `PORT` | No | Port to listen on (default: `3001`) |
+| `CORS_ORIGIN` | Yes | Frontend origin (e.g. `http://localhost:1212`) |
+| `RESEND_API_KEY` | No | [Resend](https://resend.com) key — enables welcome emails for new students |
+| `PORT` | No | Port to listen on (default: `3002`) |
 
 **Frontend (`chatbox/.env`)**
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_API_URL` | No | Backend base URL (default: `http://localhost:3001`) |
+| `VITE_API_URL` | No | Backend base URL (default: `http://localhost:3002`) |
 
-### Build & run with Docker
-
-```bash
-docker build -t chatbridge .
-docker run -p 8080:8080 -e PORT=8080 chatbridge
-```
-
-The Dockerfile builds all three apps (chess, weather, main) and serves them from a single nginx container:
-- `/` → main ChatBridge SPA
-- `/chess/` → chess app
-- `/weather/` → weather app
-
-### Tests
+### Build for production
 
 ```bash
-# Unit + component tests (runs in ~1s)
 cd chatbox
-pnpm test
-
-# Watch mode
-pnpm test:watch
+docker build -t chatbridge .
+docker run -p 8080:8080 -e PORT=8080 \
+  -e VITE_API_URL=https://your-backend.railway.app \
+  chatbridge
 ```
 
-Custom tests cover the plugin system specifically:
-
-| File | What it tests |
-|------|--------------|
-| `chess-state-store.test.ts` | Module-level board state store |
-| `chess-opponent-move.test.ts` | UCI move extraction from LLM output |
-| `chess-postmessage.test.ts` | `sendToParent`, `waitForOpponentUci` (timeout, error, mismatch) |
-| `tutorAuthStore.test.ts` | `setAuth` / `clearAuth` state transitions |
-| `tutorApi.test.ts` | Login/signup flows, auth header attachment, error propagation |
-| `AppEmbed.test.tsx` | Inline app routing, iframe load states, 10 s timeout + retry, STATE_UPDATE and REQUEST_OPPONENT_MOVE postMessage handlers |
+The Dockerfile builds the main SPA and the quiz app, then serves both from a single nginx container. Chess and weather are bundled directly into the main SPA (inline components) — no separate servers needed.
 
 ---
 
-## API Documentation
+## Adding a New Plugin
 
-### Plugin Contract (postMessage)
+Adding an app requires exactly two files and one line in the registry.
 
-All iframe apps communicate with the platform over `window.postMessage`.
+### 1. Create the component
 
-#### Platform → App
+```tsx
+// src/renderer/components/apps/MyApp.tsx
+import './myapp.css'
 
-```typescript
-// Invoke a tool registered by the app
-{
-  type: 'TOOL_INVOKE',
-  pluginId: string,       // must match your app's pluginId
-  invocationId: string,   // unique ID for this call
-  tool: string,           // tool name
-  params: Record<string, unknown>
+export interface MyAppProps {
+  state: Record<string, unknown>   // tool call result passed as initial state
+  onStateUpdate?: (s: Record<string, unknown>) => void
+  sessionId?: string
 }
 
-// Reply to a chess opponent-move request
-{
-  type: 'OPPONENT_MOVE_RESULT',
-  pluginId: 'chess',
-  requestId: string,
-  uci?: string,           // UCI move (e.g. "e2e4") on success
-  error?: string          // error code on failure
-}
-```
+export default function MyApp({ state, onStateUpdate }: MyAppProps) {
+  // Listen for tool invocations from the AI SDK
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { tool, params } = (e as CustomEvent).detail
+      if (tool === 'do_something') {
+        // ... handle it ...
+        onStateUpdate?.({ result: 'done' })
+      }
+    }
+    window.addEventListener('app:toolInvoke', handler)
+    return () => window.removeEventListener('app:toolInvoke', handler)
+  }, [onStateUpdate])
 
-#### App → Platform
-
-```typescript
-// Report new state (sent after every significant change)
-{
-  type: 'STATE_UPDATE',
-  pluginId: string,
-  invocationId: string,
-  payload: Record<string, unknown>   // arbitrary app state
-}
-
-// Signal that the app's task is complete
-{
-  type: 'COMPLETION',
-  pluginId: string,
-  payload: { result: string, [key: string]: unknown }
-}
-
-// Report an error
-{
-  type: 'ERROR',
-  pluginId: string,
-  invocationId: string,
-  payload: { code: string, message: string }
-}
-
-// Chess only — ask the platform to generate an LLM move
-{
-  type: 'REQUEST_OPPONENT_MOVE',
-  pluginId: 'chess',
-  requestId: string,       // echoed back in OPPONENT_MOVE_RESULT
-  fen: string,             // current board position
-  difficulty: 'easy' | 'medium' | 'hard'
+  return <div>...</div>
 }
 ```
 
-### Backend REST API
+### 2. Create the manifest
 
-Base URL: `$BETTER_AUTH_URL`
+```ts
+// src/renderer/packages/plugins/myapp.ts
+import { tool } from 'ai'
+import z from 'zod'
+import type { InlinePlugin } from '@/packages/plugin-sdk/types'
+import MyApp from '@/components/apps/MyApp'
 
-#### Auth (`/api/auth/*`)
-Handled by [Better Auth](https://better-auth.com). The bearer token is returned in the `set-auth-token` response header.
+export const myAppPlugin: InlinePlugin = {
+  id: 'myapp',
+  name: 'My App',
+  description: 'One sentence description',
+  version: '1.0.0',
+  author: 'TutorMeAI',
+  type: 'inline',
+  component: MyApp as InlinePlugin['component'],
+  systemPromptHint: '- My App: call myapp__open when the user asks about X',
+
+  tools: {
+    myapp__open: tool({
+      description: 'Open my app.',
+      inputSchema: z.object({ topic: z.string() }),
+      execute: async (input) => ({
+        action: 'render_app',
+        appId: 'myapp',
+        topic: input.topic,   // becomes state.topic in the component
+      }),
+    }),
+  },
+}
+```
+
+### 3. Register it
+
+```ts
+// src/renderer/packages/pluginRegistry.ts  — add one import and one entry
+import { myAppPlugin } from './plugins/myapp'
+
+const ALL_PLUGINS: PluginManifest[] = [
+  chessPlugin,
+  weatherPlugin,
+  countingPlugin,
+  vocabPlugin,
+  calendarPlugin,
+  quizPlugin,
+  myAppPlugin,   // ← add this
+]
+```
+
+That's it. The LLM discovers the tools automatically on the next stream start. No changes to `stream-text.ts`, `AppEmbed.tsx`, or the session route.
+
+---
+
+## Plugin SDK Reference
+
+### `PluginManifest` fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `string` | Yes | Unique identifier. All tool names must be prefixed with this id (`{id}__{toolName}`) |
+| `name` | `string` | Yes | Display name shown in the panel header |
+| `description` | `string` | Yes | One-sentence description of the app |
+| `version` | `string` | Yes | Semver string |
+| `author` | `string` | Yes | Developer or organization name |
+| `type` | `'inline' \| 'iframe'` | Yes | Rendering mode |
+| `tools` | `ToolSet` | Yes | AI SDK tool definitions keyed by `{id}__{name}` |
+| `systemPromptHint` | `string` | Yes | Fragment injected into the LLM system prompt. Keep it to one line. |
+| `gradeRange` | `string[]` | No | Grades this app is appropriate for. Omit to allow all. |
+| `requiresAuth` | `boolean` | No | Set `true` if the app requires an OAuth flow before use |
+
+### `InlinePluginProps`
+
+```ts
+interface InlinePluginProps {
+  state: Record<string, unknown>   // tool call result from execute()
+  onStateUpdate?: (state: Record<string, unknown>) => void
+  sessionId?: string               // current chat session (for LLM calls)
+}
+```
+
+### Tool return values
+
+Tools return a plain object from `execute()`. Two `action` values are handled specially:
+
+| `action` | Effect |
+|----------|--------|
+| `render_app` | Opens the side panel and renders the component. The full return value becomes `state`. |
+| `tool_invoke` | Dispatches `app:toolInvoke` to an already-open component. Does not re-render. |
+
+Anything else is treated as a tool result and shown inline in the chat (no panel opens).
+
+### Prompt injection protection
+
+Tool descriptions are sanitized at registration time by `sanitize.ts`. Patterns blocked include: "ignore previous instructions", "disregard", "you are now", "DAN", "jailbreak", "reveal student data", and similar. Apps that fail sanitization are rejected with an error log at startup.
+
+---
+
+## API Reference
+
+### Auth (`/api/auth/*`)
+
+Handled by [Better Auth](https://better-auth.com). Token is returned in the `set-auth-token` response header.
 
 | Method | Path | Body | Description |
 |--------|------|------|-------------|
 | `POST` | `/api/auth/sign-up/email` | `{ name, email, password, school? }` | Create teacher account |
-| `POST` | `/api/auth/sign-in/email` | `{ email, password }` | Sign in, returns token in `set-auth-token` header |
+| `POST` | `/api/auth/sign-in/email` | `{ email, password }` | Sign in |
 
-#### Teacher (`/api/teacher/*`)
+### Teacher (`/api/teacher/*`)
+
 All routes require `Authorization: Bearer <token>` and `role = 'teacher'`.
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/teacher/students` | List students |
-| `POST` | `/api/teacher/students` | Create student |
-| `PATCH` | `/api/teacher/students/:id` | Update student name/grade |
+| `POST` | `/api/teacher/students` | Create student (`{ name, email, grade, password }`) |
+| `PATCH` | `/api/teacher/students/:id` | Update name or grade |
 | `DELETE` | `/api/teacher/students/:id` | Delete student |
 | `GET` | `/api/teacher/apps` | Get enabled app list |
-| `PATCH` | `/api/teacher/apps` | Update enabled app list |
+| `PATCH` | `/api/teacher/apps` | Update enabled app list (`{ enabledApps: string[] }`) |
 
-#### Google Calendar (`/api/calendar/*`, `/api/oauth/google/*`)
-Requires auth token.
+### Google Calendar (`/api/calendar/*`, `/api/oauth/google/*`)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/oauth/google/authorize` | Get Google OAuth consent URL |
-| `GET` | `/api/oauth/google/callback` | OAuth callback (handled automatically) |
+| `GET` | `/api/oauth/google/authorize` | Returns Google OAuth consent URL |
+| `GET` | `/api/oauth/google/callback` | OAuth callback — handled automatically |
 | `GET` | `/api/calendar/status` | Check if calendar is connected |
-| `DELETE` | `/api/calendar/disconnect` | Revoke calendar access |
+| `DELETE` | `/api/calendar/disconnect` | Revoke access |
 | `GET` | `/api/calendar/events` | List upcoming events |
-| `POST` | `/api/calendar/events` | Create an event |
+| `POST` | `/api/calendar/events` | Create event |
 
 ---
 
-## Adding a New App
+## Tests
 
-### Option A: Iframe app (external UI, full isolation)
+```bash
+cd chatbox && pnpm test
+```
 
-1. Create `apps/yourapp/` as a Vite project
-2. Implement the postMessage protocol (listen for `TOOL_INVOKE`, send `STATE_UPDATE` / `COMPLETION`)
-3. Add a build stage in `Dockerfile` + location block in `nginx.conf`
-4. Add tool definitions in `src/renderer/packages/model-calls/toolsets/yourapp.ts`
-5. Register tools in `stream-text.ts`
-6. Add `appId` icon mapping in `$sessionId.tsx`
-
-### Option B: Inline React component (no iframe, tighter integration)
-
-1. Create `src/renderer/components/apps/YourApp.tsx` + scoped CSS
-2. Accept `onStateUpdate` prop and listen to `app:toolInvoke` custom events
-3. Add early-return render in `AppEmbed.tsx` for your `appId`
-4. Add tool definitions returning `{ action: 'render_app', appId: 'yourapp', appUrl: 'internal://yourapp' }`
-
----
-
-## Security Notes
-
-- iframe apps are sandboxed with `sandbox="allow-scripts allow-same-origin"`
-- `AppEmbed` filters postMessage events by `pluginId` and `event.source` (must originate from that iframe's `contentWindow`) to prevent cross-app message spoofing
-- Inline apps (Counting, Vocab, Calendar) run in the same React tree — only use for fully-trusted first-party code
-- No student PII is sent to third-party app URLs
+| File | What it covers |
+|------|---------------|
+| `chess-state-store.test.ts` | Plugin state store (get/set/clear) |
+| `chess-opponent-move.test.ts` | UCI move extraction from raw LLM output |
+| `chess-postmessage.test.ts` | postMessage round-trip: timeout, error, requestId mismatch |
+| `tutorAuthStore.test.ts` | `setAuth` / `clearAuth` state transitions |
+| `tutorApi.test.ts` | Login/signup, auth header injection, error propagation |
+| `AppEmbed.test.tsx` | Inline routing, iframe load states, 10s timeout + retry, STATE_UPDATE and REQUEST_OPPONENT_MOVE handlers |
 
 ---
 
 ## Upstream
 
-This project is a fork of [Chatbox Community Edition](https://github.com/chatboxai/chatbox), used under the [GPLv3 license](./LICENSE). The original Chatbox supports Windows, macOS, Linux, iOS, and Android desktop/mobile clients. This fork focuses on the web build only.
+Forked from [Chatbox Community Edition](https://github.com/chatboxai/chatbox) under [GPLv3](./LICENSE). This fork targets the web build only and replaces the Electron update system with Railway deployment.
