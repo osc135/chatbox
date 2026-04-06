@@ -35,6 +35,7 @@ import {
   searchByPromptEngineering,
 } from './tools'
 import { buildToolSet, buildSystemPromptHints } from '../pluginRegistry'
+import { getEnabledApps } from '../tutorApi'
 import fileToolSet from './toolsets/file'
 import { getToolSet } from './toolsets/knowledge-base'
 import websearchToolSet, { parseLinkTool, webSearchTool } from './toolsets/web-search'
@@ -159,19 +160,26 @@ export async function streamText(
   // 1. inject system prompt for tool use
   // Include student context if a student is logged in
   const tutorUser = tutorAuthStore.getState().user
+  const studentGrade = tutorUser?.role === 'student' ? (tutorUser.grade ?? null) : null
   const studentContext = tutorUser?.role === 'student' && tutorUser.grade
     ? `\nThe student you are tutoring is in grade ${tutorUser.grade === 'K' ? 'Kindergarten' : tutorUser.grade}. Tailor all explanations, vocabulary, and activities to be age-appropriate for that grade level.\n`
     : ''
 
+  // Fetch the teacher's enabled-apps list (cached 30s) and filter by student grade.
+  // Falls back to all apps if the user is not logged in or the request fails.
+  const enabledApps = await getEnabledApps()
+
   // Always include ChatBridge app tool guidance so every session can invoke mini-apps.
   // buildSystemPromptHints() is generated from the plugin registry — adding a new plugin
   // automatically includes its hint here without any manual edits to this file.
+  const hints = buildSystemPromptHints(enabledApps, studentGrade)
   let toolSetInstructions = `${studentContext}
 You have access to interactive mini-apps that render inline in the chat window. Use them proactively:
-${buildSystemPromptHints()}
+${hints || '(No mini-apps are currently enabled for this student.)'}
 
 Rules:
 - Invoke the tool immediately — do not ask "would you like me to open X?" just do it
+- Only call tools that are listed above. If a student asks for something whose tool is not listed, explain that it is not available right now.
 - After the app renders, continue the conversation naturally around it
 - Never tell the user to "click a link" or "visit a URL" — the app appears right in the chat
 `
@@ -314,7 +322,7 @@ Rules:
     // 4. construct tool set — registry-driven, no manual per-plugin imports needed
     let tools: ToolSet = {
       ...mcpController.getAvailableTools(),
-      ...buildToolSet(),
+      ...buildToolSet(enabledApps, studentGrade),
     }
     if (webBrowsing) {
       tools.web_search = webSearchTool

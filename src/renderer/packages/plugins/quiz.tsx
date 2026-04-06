@@ -17,7 +17,6 @@ export const quizPlugin: InlinePlugin = {
   author: 'TutorMeAI',
   type: 'inline',
   component: QuizWrapper,
-  gradeRange: ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
   systemPromptHint:
     '- Quiz: call quiz__start when a student wants to be tested or review material on a subject',
 

@@ -111,6 +111,28 @@ export const deleteStudent = (id: string) =>
 export const getTeacherApps = () =>
   request<{ enabledApps: string[] }>('/api/teacher/apps').then((r) => r.enabledApps)
 
+// ── Enabled apps (works for both teachers and students) ───────────────────────
+// Cached for 30 seconds to avoid a round-trip on every message stream.
+
+let _enabledAppsCache: { apps: string[]; ts: number } | null = null
+
+export function invalidateEnabledAppsCache(): void {
+  _enabledAppsCache = null
+}
+
+export async function getEnabledApps(): Promise<string[]> {
+  if (_enabledAppsCache && Date.now() - _enabledAppsCache.ts < 30_000) {
+    return _enabledAppsCache.apps
+  }
+  const token = tutorAuthStore.getState().token
+  if (!token) return [] // no login → no filter (all apps shown)
+  const apps = await request<{ enabledApps: string[] }>('/api/apps/enabled')
+    .then((r) => r.enabledApps)
+    .catch(() => [])
+  _enabledAppsCache = { apps, ts: Date.now() }
+  return apps
+}
+
 export const updateTeacherApps = (enabledApps: string[]) =>
   request<{ enabledApps: string[] }>('/api/teacher/apps', {
     method: 'PATCH',

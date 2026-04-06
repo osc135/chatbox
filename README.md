@@ -18,14 +18,15 @@ Third-party apps register via a **plugin manifest**. The platform discovers thei
 
 Six apps ship with the platform, covering a range of complexity levels, integration patterns, and auth requirements:
 
-| App | Type | Auth | Pattern |
-|-----|------|------|---------|
-| ♟ Chess | Inline React | None | Complex bidirectional state, LLM opponent |
-| 🌤 Weather | Inline React | None | External public API, read-only |
-| 🔢 Counting | Inline React | None | K-2 math practice, Web Audio API |
-| 📖 Vocab | Inline React | None | LLM-generated flashcard sets + quiz |
-| 📅 Google Calendar | Inline React | OAuth 2.0 | OAuth flow, token refresh, event CRUD |
-| ❓ Quiz | Inline React | None | LLM-generated questions, score reporting |
+| App | Type | Auth | Grades | Pattern |
+|-----|------|------|--------|---------|
+| ♟ Chess | Inline React | None | 3–12 | Complex bidirectional state, LLM opponent |
+| 🌤 Weather | Inline React | None | All | External public API, read-only |
+| 🔢 Counting | Inline React | None | K–2 | K-2 math practice, Web Audio API |
+| 📖 Vocab | Inline React | None | All | LLM-generated flashcard sets + quiz |
+| 📅 Google Calendar | Inline React | OAuth 2.0 | All | OAuth flow, token refresh, event CRUD |
+| ❓ Quiz | Inline React | None | All | LLM-generated questions, score reporting |
+| ⏱ Focus Timer | **Iframe** | None | All | Standalone HTML/JS app — demonstrates IframePlugin protocol |
 
 ### ♟ Chess
 Full chess board (react-chessboard + chess.js) with legal move validation. The LLM plays as opponent via a direct API call — no postMessage round-trip. Four difficulty levels including a random-move "super dumb" mode that works offline.
@@ -75,6 +76,16 @@ Multiple-choice quiz with LLM-generated questions on any topic. Score and wrong 
 |------|-------------|
 | `quiz__start` | Generate and launch a quiz on a topic |
 
+### ⏱ Focus Timer
+A Pomodoro-style countdown timer served as a **standalone static HTML file** at `/apps/timer/index.html`. This is the platform's `IframePlugin` example — it has no React or build step, communicates entirely via postMessage, and could be hosted on any URL. It demonstrates that third-party apps don't need to be compiled into the platform.
+
+| Tool | What it does |
+|------|-------------|
+| `timer__start` | Open and start the timer (optional duration in minutes) |
+| `timer__pause` | Pause a running timer |
+| `timer__resume` | Resume a paused timer |
+| `timer__reset` | Reset to the starting duration |
+
 ---
 
 ## Architecture
@@ -109,8 +120,8 @@ Rendered as a React component inside `AppEmbed`. No iframe, no postMessage:
 - State changes call the `onStateUpdate(payload)` prop, which writes to the plugin state store and updates LLM context
 - Initial state (e.g. the location for weather) is passed via the `state` prop from the tool call result
 
-**Iframe (supported, not currently used)**
-For apps that need full isolation or are hosted externally. Communication uses `window.postMessage` with strict origin validation. The sandbox defaults to `allow-scripts` only — no `allow-same-origin` — preventing co-located iframes from accessing the parent's auth tokens even when served from the same domain.
+**Iframe (Focus Timer is a working example)**
+For apps that need full isolation or are hosted at an external URL. Communication uses `window.postMessage` with strict origin validation. The sandbox defaults to `allow-scripts` only — no `allow-same-origin` — preventing co-located iframes from accessing the parent's auth tokens even when served from the same domain. The timer app at `/apps/timer/index.html` is a self-contained HTML/JS file with no build step that demonstrates this path end-to-end.
 
 ### Full Lifecycle
 

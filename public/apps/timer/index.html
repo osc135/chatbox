@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Timer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f13;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 28px;
+    padding: 24px;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .phase-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #5bc8f5;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    min-height: 22px;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+  }
+
+  .ring-wrap svg {
+    transform: rotate(-90deg);
+    width: 200px;
+    height: 200px;
+  }
+
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
+  .ring-fg {
+    fill: none;
+    stroke: #5bc8f5;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.4s;
+  }
+  .ring-fg.break { stroke: #7ed6a0; }
+  .ring-fg.done  { stroke: #c9802e; }
+
+  .time-display {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .time {
+    font-size: 42px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: #f0f0f0;
+  }
+
+  .sessions-badge {
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+  }
+
+  button {
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 22px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  button:active { transform: scale(0.96); }
+  button:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+  .btn-primary {
+    background: #5bc8f5;
+    color: #0f0f13;
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .preset-btn {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.55);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .preset-btn:hover { background: rgba(255,255,255,0.1); color: #e0e0e0; }
+  .preset-btn.active {
+    background: rgba(91,200,245,0.15);
+    border-color: rgba(91,200,245,0.4);
+    color: #5bc8f5;
+  }
+
+  .status-msg {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    min-height: 20px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="label">Focus Timer</div>
+<div class="phase-label" id="phaseLabel">Ready</div>
+
+<div class="ring-wrap">
+  <svg viewBox="0 0 200 200">
+    <circle class="ring-bg" cx="100" cy="100" r="88"/>
+    <circle class="ring-fg" id="ring" cx="100" cy="100" r="88"
+      stroke-dasharray="553"
+      stroke-dashoffset="0"/>
+  </svg>
+  <div class="time-display">
+    <div class="time" id="timeDisplay">25:00</div>
+    <div class="sessions-badge" id="sessionsBadge">Session 1</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-primary" id="startBtn" onclick="toggle()">Start</button>
+  <button class="btn-secondary" id="resetBtn" onclick="reset()" disabled>Reset</button>
+</div>
+
+<div class="presets">
+  <button class="preset-btn active" id="p25" onclick="setDuration(25)">25 min</button>
+  <button class="preset-btn" id="p15" onclick="setDuration(15)">15 min</button>
+  <button class="preset-btn" id="p10" onclick="setDuration(10)">10 min</button>
+  <button class="preset-btn" id="p5"  onclick="setDuration(5)">5 min</button>
+</div>
+
+<div class="status-msg" id="statusMsg">Choose a duration and press Start</div>
+
+<script>
+  // ── State ────────────────────────────────────────────────────────────────────
+  const CIRCUMFERENCE = 2 * Math.PI * 88 // ≈553
+  let totalSeconds  = 25 * 60
+  let remaining     = totalSeconds
+  let running       = false
+  let intervalId    = null
+  let sessionCount  = 1
+  let phase         = 'focus' // focus | break | done
+  let chosenMinutes = 25
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────────
+  const timeEl    = document.getElementById('timeDisplay')
+  const ringEl    = document.getElementById('ring')
+  const startBtn  = document.getElementById('startBtn')
+  const resetBtn  = document.getElementById('resetBtn')
+  const phaseEl   = document.getElementById('phaseLabel')
+  const badgeEl   = document.getElementById('sessionsBadge')
+  const statusEl  = document.getElementById('statusMsg')
+
+  // ── Rendering ─────────────────────────────────────────────────────────────────
+  function render() {
+    const m = Math.floor(remaining / 60)
+    const s = remaining % 60
+    timeEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+
+    const progress = remaining / totalSeconds
+    ringEl.style.strokeDashoffset = (CIRCUMFERENCE * (1 - progress)).toFixed(2)
+
+    ringEl.className = `ring-fg ${phase === 'break' ? 'break' : phase === 'done' ? 'done' : ''}`
+
+    if (phase === 'focus') {
+      phaseEl.textContent = running ? 'Focus Time' : 'Ready'
+      phaseEl.style.color = '#5bc8f5'
+    } else if (phase === 'break') {
+      phaseEl.textContent = 'Break Time ☕'
+      phaseEl.style.color = '#7ed6a0'
+    } else {
+      phaseEl.textContent = 'Done! 🎉'
+      phaseEl.style.color = '#c9802e'
+    }
+
+    badgeEl.textContent = `Session ${sessionCount}`
+    startBtn.textContent = running ? 'Pause' : (remaining < totalSeconds ? 'Resume' : 'Start')
+  }
+
+  // ── Timer logic ───────────────────────────────────────────────────────────────
+  function tick() {
+    if (remaining <= 0) {
+      clearInterval(intervalId)
+      running = false
+      handlePhaseEnd()
+      return
+    }
+    remaining--
+    render()
+    postState()
+  }
+
+  function handlePhaseEnd() {
+    if (phase === 'focus') {
+      phase = 'break'
+      totalSeconds = 5 * 60
+      remaining = totalSeconds
+      statusEl.textContent = 'Great work! Take a 5-minute break.'
+      render()
+      postState('focus_complete')
+      // Auto-start break
+      intervalId = setInterval(tick, 1000)
+      running = true
+    } else if (phase === 'break') {
+      phase = 'done'
+      sessionCount++
+      render()
+      statusEl.textContent = 'Session complete! Click Reset to go again.'
+      postState('session_complete')
+      startBtn.disabled = true
+    }
+  }
+
+  function toggle() {
+    if (phase === 'done') return
+    if (running) {
+      clearInterval(intervalId)
+      running = false
+      statusEl.textContent = 'Paused'
+    } else {
+      intervalId = setInterval(tick, 1000)
+      running = true
+      statusEl.textContent = phase === 'focus' ? 'Focus time — you\'ve got this!' : 'Enjoy your break!'
+      resetBtn.disabled = false
+    }
+    render()
+    postState()
+  }
+
+  function reset() {
+    clearInterval(intervalId)
+    running = false
+    phase = 'focus'
+    remaining = totalSeconds = chosenMinutes * 60
+    startBtn.disabled = false
+    resetBtn.disabled = true
+    statusEl.textContent = 'Choose a duration and press Start'
+    render()
+    postState('reset')
+  }
+
+  function setDuration(minutes) {
+    if (running) return
+    chosenMinutes = minutes
+    totalSeconds = minutes * 60
+    remaining = totalSeconds
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'))
+    document.getElementById(`p${minutes}`)?.classList.add('active')
+    statusEl.textContent = `Timer set to ${minutes} minutes`
+    render()
+    postState()
+  }
+
+  // ── postMessage protocol ──────────────────────────────────────────────────────
+  function postState(event) {
+    const payload = {
+      type: 'STATE_UPDATE',
+      pluginId: 'timer',
+      invocationId: 'timer-state',
+      payload: {
+        phase,
+        running,
+        remaining,
+        totalSeconds,
+        sessionCount,
+        minutesChosen: chosenMinutes,
+        ...(event ? { event } : {}),
+      },
+    }
+    window.parent.postMessage(payload, '*')
+  }
+
+  // ── Handle tool invocations from the host ─────────────────────────────────────
+  window.addEventListener('message', (e) => {
+    const msg = e.data
+    if (!msg || msg.type !== 'TOOL_INVOKE') return
+
+    if (msg.tool === 'start') {
+      const mins = msg.params?.minutes
+      if (typeof mins === 'number' && [5,10,15,20,25,30].includes(mins)) setDuration(mins)
+      if (!running && phase !== 'done') toggle()
+    }
+    if (msg.tool === 'pause')  { if (running) toggle() }
+    if (msg.tool === 'resume') { if (!running && phase !== 'done') toggle() }
+    if (msg.tool === 'reset')  { reset() }
+  })
+
+  // ── Init from query params ────────────────────────────────────────────────────
+  const params = new URLSearchParams(window.location.search)
+  const qMinutes = parseInt(params.get('minutes') ?? '', 10)
+  if (!isNaN(qMinutes) && qMinutes >= 1 && qMinutes <= 60) {
+    // Round to nearest preset or use the exact value
+    const closest = [5, 10, 15, 25].reduce((a, b) =>
+      Math.abs(b - qMinutes) < Math.abs(a - qMinutes) ? b : a)
+    if ([5, 10, 15, 25].includes(qMinutes)) {
+      setDuration(qMinutes)
+    } else {
+      // Custom duration — update manually without clicking a preset button
+      chosenMinutes = qMinutes
+      totalSeconds = qMinutes * 60
+      remaining = totalSeconds
+      statusEl.textContent = `Timer set to ${qMinutes} minutes`
+    }
+  }
+  if (params.get('autostart') === '1') {
+    toggle()
+  }
+  render()
+</script>
+</body>
+</html>

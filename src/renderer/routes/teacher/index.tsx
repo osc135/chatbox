@@ -21,10 +21,13 @@ const GRADE_LABEL: Record<string, string> = { K: 'Kindergarten' }
 const gradeLabel = (g: string) => GRADE_LABEL[g] ?? `Grade ${g}`
 
 const ALL_APPS = [
-  { id: 'chess',    label: 'Chess',      description: 'Strategic chess against an AI opponent' },
-  { id: 'weather',  label: 'Weather',    description: 'Current conditions and 5-day forecast' },
-  { id: 'counting', label: 'Counting',   description: 'K-2 math practice with 3 difficulty levels' },
-  { id: 'vocab',    label: 'Vocabulary', description: 'Flashcard deck with quiz mode' },
+  { id: 'chess',    label: 'Chess',          description: 'Strategic chess against an AI opponent' },
+  { id: 'weather',  label: 'Weather',        description: 'Current conditions and 7-day forecast' },
+  { id: 'counting', label: 'Counting',       description: 'K-2 math practice with 3 difficulty levels' },
+  { id: 'vocab',    label: 'Vocabulary',     description: 'Flashcard deck with quiz mode' },
+  { id: 'calendar', label: 'Google Calendar', description: 'View and create calendar events (requires Google sign-in)' },
+  { id: 'quiz',     label: 'Subject Quiz',   description: 'LLM-generated multiple-choice quiz on any topic' },
+  { id: 'timer',    label: 'Focus Timer',    description: 'Pomodoro countdown timer for focus sessions' },
 ]
 
 function TeacherDashboard() {

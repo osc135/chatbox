@@ -185,12 +185,34 @@ function RouteComponent() {
       if (activeApp?.appId === 'vocab' && state.action === 'quiz_complete') {
         const score = state.score as { correct: number; total: number }
         const missed = (state.missedWords as string[]) ?? []
-        const key = `${score.correct}/${score.total}:${missed.join(',')}`
+        const key = `vocab:${score.correct}/${score.total}:${missed.join(',')}`
         if (key === lastAutoSubmitKeyRef.current) return
         lastAutoSubmitKeyRef.current = key
         const text = missed.length === 0
           ? `I just finished the vocab quiz and got ${score.correct} out of ${score.total} — perfect score!`
           : `I just finished the vocab quiz and got ${score.correct} out of ${score.total}. I missed: ${missed.join(', ')}.`
+        void onSubmit({
+          constructedMessage: {
+            id: crypto.randomUUID(),
+            role: MessageRoleEnum.User,
+            contentParts: [{ type: 'text', text }],
+          } as Message,
+          needGenerating: true,
+        })
+      }
+
+      if (activeApp?.appId === 'quiz' && state.done === true) {
+        const score = state.score as number
+        const total = state.total as number
+        const topic = state.topic as string | undefined
+        const passed = state.passed as boolean
+        const key = `quiz:${score}/${total}:${topic}`
+        if (key === lastAutoSubmitKeyRef.current) return
+        lastAutoSubmitKeyRef.current = key
+        const topicLabel = topic && topic !== 'all' ? ` on ${topic}` : ''
+        const text = passed
+          ? `I just finished the quiz${topicLabel} and got ${score} out of ${total}. I passed!`
+          : `I just finished the quiz${topicLabel} and got ${score} out of ${total}.`
         void onSubmit({
           constructedMessage: {
             id: crypto.randomUUID(),

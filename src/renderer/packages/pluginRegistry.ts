@@ -24,6 +24,7 @@ import { countingPlugin } from './plugins/counting'
 import { vocabPlugin } from './plugins/vocab'
 import { calendarPlugin } from './plugins/calendar'
 import { quizPlugin } from './plugins/quiz'
+import { timerPlugin } from './plugins/timer'
 
 /**
  * All registered plugins, sanitized at module load time.
@@ -36,6 +37,7 @@ const REGISTRY: PluginManifest[] = [
   vocabPlugin,
   calendarPlugin,
   quizPlugin,
+  timerPlugin,
 ].map(sanitizePluginManifest)
 
 /** Look up a plugin by its ID. Returns undefined if not registered. */
@@ -50,10 +52,14 @@ export function getAllPlugins(): PluginManifest[] {
 
 /**
  * Build the combined AI SDK tool set from all registered plugins.
- * Pass the result directly to model.chat({ tools }).
+ *
+ * @param allowedIds  Optional allowlist of plugin IDs (from teacher settings).
+ *                    Pass an empty array to include all plugins.
+ * @param grade       Optional student grade (e.g. "K", "1", "5"). Plugins with
+ *                    a gradeRange that doesn't include this grade are excluded.
  */
-export function buildToolSet(): Record<string, unknown> {
-  return REGISTRY.reduce<Record<string, unknown>>(
+export function buildToolSet(allowedIds?: string[], grade?: string | null): Record<string, unknown> {
+  return filterRegistry(allowedIds, grade).reduce<Record<string, unknown>>(
     (acc, plugin) => ({ ...acc, ...plugin.tools }),
     {}
   )
@@ -63,9 +69,24 @@ export function buildToolSet(): Record<string, unknown> {
  * Build the system prompt fragment describing available apps.
  * Each plugin contributes one hint line; the full block is injected into
  * every session's system prompt so the LLM knows when to invoke each tool.
+ *
+ * Accepts the same filter params as buildToolSet so the hints stay in sync
+ * with the actual tool set.
  */
-export function buildSystemPromptHints(): string {
-  return REGISTRY.map((p) => p.systemPromptHint).join('\n')
+export function buildSystemPromptHints(allowedIds?: string[], grade?: string | null): string {
+  return filterRegistry(allowedIds, grade).map((p) => p.systemPromptHint).join('\n')
+}
+
+/**
+ * Returns the subset of REGISTRY that passes the allowedIds and grade filters.
+ * An empty allowedIds array means "no restriction" (all plugins pass).
+ */
+function filterRegistry(allowedIds?: string[], grade?: string | null): PluginManifest[] {
+  return REGISTRY.filter((p) => {
+    if (allowedIds && allowedIds.length > 0 && !allowedIds.includes(p.id)) return false
+    if (grade && p.gradeRange && p.gradeRange.length > 0 && !p.gradeRange.includes(grade)) return false
+    return true
+  })
 }
 
 /**

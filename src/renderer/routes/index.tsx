@@ -27,8 +27,9 @@ import { router } from '@/router'
 import { useAuthInfoStore } from '@/stores/authInfoStore'
 import { createSession as createSessionStore } from '@/stores/chatStore'
 import { submitNewUserMessage, switchCurrentSession } from '@/stores/sessionActions'
-import { initEmptyChatSession } from '@/stores/sessionHelpers'
+import { constructUserMessage, initEmptyChatSession } from '@/stores/sessionHelpers'
 import { useLanguage, useSettingsStore } from '@/stores/settingsStore'
+import { useTutorUser } from '@/stores/tutorAuthStore'
 import { useUIStore } from '@/stores/uiStore'
 import { getHomeWelcomeCardMode } from '@/utils/homeWelcomeCard'
 
@@ -226,15 +227,114 @@ function Index() {
     return true
   }, [session])
 
+  const tutorUser = useTutorUser()
+
+  const timeGreeting = useMemo(() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
+    return 'Good evening'
+  }, [])
+
+  const suggestions = [
+    { emoji: '♟️', label: "Let's play chess", prompt: "Let's play chess" },
+    { emoji: '📝', label: 'Quiz me on something', prompt: 'Quiz me on something interesting' },
+    { emoji: '🌤️', label: 'Check the weather', prompt: "What's the weather today?" },
+    { emoji: '📚', label: 'Vocab practice', prompt: 'Help me practice some vocabulary words' },
+    { emoji: '🗓️', label: "What's on my calendar", prompt: "What's on my calendar today?" },
+    { emoji: '🔢', label: 'Help with math', prompt: 'Help me with a math problem' },
+  ]
+
+  const sendSuggestion = useCallback(
+    (prompt: string) => {
+      void handleSubmit({
+        constructedMessage: constructUserMessage(prompt),
+        needGenerating: true,
+      })
+    },
+    [handleSubmit]
+  )
+
   return (
     <Page title="">
       <div className="p-0 flex flex-col h-full">
         {messageLayout || welcomeCardMode !== 'none' ? (
-          <Stack align="center" justify="center" gap="sm" flex={1}>
-            <HomepageIcon className="h-8" />
-            <Text fw="600" size={isSmallScreen ? 'sm' : 'md'}>
-              {t('What can I help you with today?')}
-            </Text>
+          <Stack align="center" justify="center" flex={1} px="md" style={{ position: 'relative', overflow: 'hidden' }}>
+            {/* ambient glow */}
+            <div style={{
+              position: 'absolute',
+              top: '40%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 500,
+              height: 500,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(56, 189, 248, 0.07) 0%, transparent 65%)',
+              pointerEvents: 'none',
+            }} />
+
+            <Stack align="center" gap={6} mb="lg">
+              <div style={{ fontSize: '2.2rem', lineHeight: 1, marginBottom: 4 }}>✦</div>
+              <Text
+                ta="center"
+                style={{
+                  fontSize: isSmallScreen ? '1.45rem' : '1.85rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.15,
+                  background: 'linear-gradient(135deg, #f8fafc 20%, #38bdf8 80%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                {timeGreeting}{tutorUser?.name ? `, ${tutorUser.name.split(' ')[0]}` : ''}!
+              </Text>
+              <Text size="sm" ta="center" style={{ color: 'rgba(255,255,255,0.45)', maxWidth: 360, lineHeight: 1.5 }}>
+                Your AI learning companion — ask anything, or jump in with a suggestion below.
+              </Text>
+            </Stack>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isSmallScreen ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+              gap: 10,
+              width: '100%',
+              maxWidth: 540,
+            }}>
+              {suggestions.map(({ emoji, label, prompt }) => (
+                <button
+                  key={label}
+                  onClick={() => sendSuggestion(prompt)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                    padding: '14px 16px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.09)',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    color: 'white',
+                    textAlign: 'left',
+                    transition: 'background 0.16s, border-color 0.16s, transform 0.16s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(56,189,248,0.1)'
+                    e.currentTarget.style.borderColor = 'rgba(56,189,248,0.3)'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }}
+                >
+                  <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{emoji}</span>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 500, lineHeight: 1.35, opacity: 0.85 }}>{label}</span>
+                </button>
+              ))}
+            </div>
           </Stack>
         ) : (
           <Stack align="center" justify="center" gap="sm" flex={1} p="sm">
@@ -288,101 +388,6 @@ function Index() {
           </Stack>
         )}
 
-        {welcomeCardMode !== 'none' && (
-          <Box px="sm">
-            <Paper
-              radius="md"
-              shadow="none"
-              withBorder
-              py="md"
-              px="sm"
-              mb="md"
-              className={widthFull ? 'w-full' : 'w-full max-w-4xl mx-auto'}
-            >
-              <Stack gap="sm">
-                <Stack gap="xxs" align="center">
-                  <Text fw={600} className="text-center">
-                    {t('Welcome to Chatbox!')}
-                  </Text>
-
-                  <Text size="xs" c="chatbox-tertiary" className="text-center">
-                    {welcomeCardMode === 'no-license' ? t('No licenses found') : t('Login to start chatting with AI')}
-                  </Text>
-                </Stack>
-
-                <Flex gap="xs" justify="center" align="center" wrap="wrap">
-                  {welcomeCardMode === 'no-license' ? (
-                    <>
-                      <Button
-                        size="xs"
-                        variant="filled"
-                        h={32}
-                        miw={160}
-                        fw={600}
-                        flex="0 1 auto"
-                        onClick={() => {
-                          trackJkClickEvent(JK_EVENTS.FREE_LICENSE_CLAIM_CLICK, {
-                            pageName: JK_PAGE_NAMES.CHAT_PAGE,
-                          })
-                          platform.openLink(
-                            `https://chatboxai.app/redirect_app/claim_free_plan/${language}/?utm_source=app&utm_content=provider_cb_login_claim_free`
-                          )
-                        }}
-                      >
-                        {t('Claim Free Plan')}
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="subtle"
-                        c="chatbox-tertiary"
-                        h={32}
-                        fw={400}
-                        flex="0 1 auto"
-                        onClick={() => {
-                          platform.openLink(
-                            `https://chatboxai.app/redirect_app/view_more_plans/${language}/?utm_source=app&utm_content=provider_cb_login_more_plans`
-                          )
-                        }}
-                      >
-                        {t('View More Plans')}
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        size="xs"
-                        variant="filled"
-                        h={32}
-                        miw={160}
-                        fw={600}
-                        flex="0 1 auto"
-                        onClick={() => {
-                          trackJkClickEvent(JK_EVENTS.LOGIN_BUTTON_CLICK, {
-                            pageName: JK_PAGE_NAMES.CHAT_PAGE,
-                          })
-                          navigateToSettings('chatbox-ai')
-                        }}
-                      >
-                        {t('Login Chatbox AI')}
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="subtle"
-                        c="chatbox-tertiary"
-                        h={32}
-                        fw={400}
-                        flex="0 1 auto"
-                        onClick={() => navigateToSettings('provider')}
-                      >
-                        {t('Other options')}
-                      </Button>
-                    </>
-                  )}
-                </Flex>
-              </Stack>
-            </Paper>
-          </Box>
-        )}
 
         <Stack gap="sm">
           {session.copilotId ? (
