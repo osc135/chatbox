@@ -4,8 +4,8 @@ import { useState } from 'react'
 
 export interface QuizQuestion {
   q: string
-  options: [string, string, string, string]
-  answer: 0 | 1 | 2 | 3
+  options: string[]
+  answer: number
   explanation?: string
 }
 

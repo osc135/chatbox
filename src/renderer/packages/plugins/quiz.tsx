@@ -7,10 +7,14 @@ import type { InlinePlugin, InlinePluginProps } from '@/packages/plugin-sdk/type
 const QuestionSchema = z.object({
   q: z.string().describe('The question text'),
   options: z
-    .tuple([z.string(), z.string(), z.string(), z.string()])
+    .array(z.string())
+    .length(4)
     .describe('Exactly four answer choices'),
   answer: z
-    .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+    .number()
+    .int()
+    .min(0)
+    .max(3)
     .describe('Index of the correct answer (0–3)'),
   explanation: z
     .string()
@@ -21,8 +25,8 @@ const QuestionSchema = z.object({
 function QuizWrapper({ state, onStateUpdate }: InlinePluginProps) {
   const questions = state['questions'] as Array<{
     q: string
-    options: [string, string, string, string]
-    answer: 0 | 1 | 2 | 3
+    options: string[]
+    answer: number
     explanation?: string
   }> | undefined
   const topic = state['topic'] as string | undefined
@@ -56,7 +60,7 @@ export const quizPlugin: InlinePlugin = {
           .describe('Label shown at the top of the quiz, e.g. "Chapter 4: Photosynthesis"'),
       }),
       execute: async (input: {
-        questions: Array<{ q: string; options: [string, string, string, string]; answer: 0 | 1 | 2 | 3; explanation?: string }>
+        questions: Array<{ q: string; options: string[]; answer: number; explanation?: string }>
         topic?: string
       }) => ({
         action: 'render_app',
