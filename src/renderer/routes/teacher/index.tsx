@@ -8,7 +8,7 @@ import {
 import { IconPlus, IconTrash, IconArrowLeft, IconUsers, IconApps } from '@tabler/icons-react'
 import {
   getStudents, createStudent, deleteStudent, type Student,
-  getTeacherApps, updateTeacherApps,
+  getTeacherApps, updateTeacherApps, invalidateEnabledAppsCache,
 } from '@/packages/tutorApi'
 import { useTutorUser } from '@/stores/tutorAuthStore'
 
@@ -113,6 +113,7 @@ function TeacherDashboard() {
     try {
       const saved = await updateTeacherApps(enabledApps)
       setEnabledApps(saved.length > 0 ? saved : ALL_APPS.map((a) => a.id))
+      invalidateEnabledAppsCache()
       setAppsSaved(true)
       setTimeout(() => setAppsSaved(false), 2000)
     } catch (err) {
