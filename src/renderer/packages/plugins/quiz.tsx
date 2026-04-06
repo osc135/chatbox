@@ -2,11 +2,13 @@ import { tool } from 'ai'
 import z from 'zod'
 import QuizApp from '@/components/apps/QuizApp'
 import type { InlinePlugin, InlinePluginProps } from '@/packages/plugin-sdk/types'
+import { useTutorUser } from '@/stores/tutorAuthStore'
 
 function QuizWrapper({ state, onStateUpdate }: InlinePluginProps) {
   const topic = (state['topic'] as string | undefined) ?? 'all'
   const count = (state['count'] as number | undefined) ?? 5
-  return <QuizApp topic={topic} count={count} onStateUpdate={onStateUpdate} />
+  const user = useTutorUser()
+  return <QuizApp topic={topic} count={count} grade={user?.grade} onStateUpdate={onStateUpdate} />
 }
 
 export const quizPlugin: InlinePlugin = {
